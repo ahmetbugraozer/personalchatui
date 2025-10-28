@@ -1,0 +1,50 @@
+name: personalchatui
+description: "A new Flutter project."
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  get: ^4.6.6
+  sizer: ^2.0.15
+  http: ^1.2.2
+  google_fonts: ^6.2.1
+  file_selector: ^1.0.3
+  universal_html: ^2.2.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^5.0.0
+
+flutter:
+
+  uses-material-design: true
+  
+  assets:
+    - assets/
+    - assets/claude-haiku-4-5.png
+    - assets/claude-opus-4-1.png
+    - assets/claude-opus-4.png
+    - assets/claude-sonnet-4-5.png
+    - assets/claude-sonnet-4.png
+    - assets/deepseek-r1.png
+    - assets/gemini-2-5-flash.png
+    - assets/gemini-2-5-pro.png
+    - assets/gpt-4-1.png
+    - assets/gpt-4o.png
+    - assets/gpt-5.png
+    - assets/o3.png
+    - assets/o4-mini.png
+    - assets/grok-3.png
+    - assets/grok-4.png
+
