@@ -43,7 +43,7 @@ class AppTheme {
         iconColor: Colors.black87.withValues(alpha: 0.9),
         textColor: Colors.black87.withValues(alpha: 0.92),
       ),
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         backgroundColor: _lightSurface,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -98,7 +98,7 @@ class AppTheme {
         iconColor: Colors.white.withValues(alpha: 0.92),
         textColor: Colors.white.withValues(alpha: 0.92),
       ),
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         backgroundColor: _darkSurface,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

@@ -114,6 +114,13 @@ class ChatController extends GetxController {
   final ChatService _service = ChatService();
   StreamSubscription<String>? _sub;
 
+  // Live stream text for the last assistant message (only updates this RxString during streaming)
+  final RxString streamText = ''.obs;
+
+  // Track which message/session is currently being streamed to (for safe commit/cancel)
+  String? _streamSessionId;
+  int? _streamMsgIndex;
+
   // Model helpers
   String get currentModelId => _sessions[_current.value].modelId.value;
   void setCurrentModel(String modelId) {
@@ -217,18 +224,24 @@ class ChatController extends GetxController {
     isStreaming.value = true;
     final idx = session.messages.length - 1;
 
+    // Prepare live stream state
+    streamText.value = '';
+    _streamSessionId = session.id;
+    _streamMsgIndex = idx;
+
     // Optional pre-stream "thinking" pause
     if (thinking) {
       await Future.delayed(const Duration(milliseconds: 1800));
 
       // If canceled during the delay, clear placeholder and exit
-      final current = session.messages[idx];
       if (!isStreaming.value) {
+        final current = session.messages[idx];
         session.messages[idx] = current.copyWith(content: '');
         return;
       }
 
       // Replace placeholder with empty before starting the real stream
+      final current = session.messages[idx];
       session.messages[idx] = current.copyWith(content: '');
     }
 
@@ -236,15 +249,17 @@ class ChatController extends GetxController {
         .streamCompletion(prompt: trimmed, attachments: attachments)
         .listen(
           (token) {
-            final current = session.messages[idx];
-            session.messages[idx] = current.copyWith(
-              content: current.content + token,
-            );
+            // Append to live stream only (do not touch the messages list)
+            streamText.value = streamText.value + token;
           },
           onError: (_) {
+            // Commit whatever we have and stop
+            _commitStreamToMessage(session, idx);
             isStreaming.value = false;
           },
           onDone: () {
+            // Final commit in a single list update
+            _commitStreamToMessage(session, idx);
             isStreaming.value = false;
           },
           cancelOnError: true,
@@ -254,7 +269,36 @@ class ChatController extends GetxController {
   void cancelStream() {
     _sub?.cancel();
     _sub = null;
+    // Commit partial text if we still have a target (avoid firstWhereOrNull)
+    if (_streamSessionId != null && _streamMsgIndex != null) {
+      final si = _sessions.indexWhere((s) => s.id == _streamSessionId);
+      if (si != -1) {
+        _commitStreamToMessage(_sessions[si], _streamMsgIndex!);
+      }
+    }
     isStreaming.value = false;
+  }
+
+  void _commitStreamToMessage(ChatSession session, int idx) {
+    if (idx < 0 || idx >= session.messages.length) {
+      streamText.value = '';
+      _streamMsgIndex = null;
+      _streamSessionId = null;
+      return;
+    }
+    final current = session.messages[idx];
+    if (streamText.value.isEmpty && current.content == AppStrings.thinking) {
+      // If we never started streaming, clear the placeholder
+      session.messages[idx] = current.copyWith(content: '');
+    } else if (streamText.value.isNotEmpty) {
+      session.messages[idx] = current.copyWith(
+        content: current.content + streamText.value,
+      );
+    }
+    streamText.value = '';
+    _streamMsgIndex = null;
+    _streamSessionId = null;
+    session.updatedAt = DateTime.now();
   }
 
   // Start a brand new empty session and switch to it

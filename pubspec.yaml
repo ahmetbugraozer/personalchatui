@@ -19,6 +19,7 @@ dependencies:
   google_fonts: ^6.2.1
   file_selector: ^1.0.3
   universal_html: ^2.2.4
+  flutter_svg: ^2.0.10+1
 
 dev_dependencies:
   flutter_test:
@@ -32,19 +33,19 @@ flutter:
   
   assets:
     - assets/
-    - assets/claude-haiku-4-5.png
-    - assets/claude-opus-4-1.png
-    - assets/claude-opus-4.png
-    - assets/claude-sonnet-4-5.png
-    - assets/claude-sonnet-4.png
-    - assets/deepseek-r1.png
-    - assets/gemini-2-5-flash.png
-    - assets/gemini-2-5-pro.png
-    - assets/gpt-4-1.png
-    - assets/gpt-4o.png
-    - assets/gpt-5.png
-    - assets/o3.png
-    - assets/o4-mini.png
-    - assets/grok-3.png
-    - assets/grok-4.png
+    - assets/claude-haiku-4-5.svg
+    - assets/claude-opus-4-1.svg
+    - assets/claude-opus-4.svg
+    - assets/claude-sonnet-4-5.svg
+    - assets/claude-sonnet-4.svg
+    - assets/deepseek-r1.svg
+    - assets/gemini-2-5-flash.svg
+    - assets/gemini-2-5-pro.svg
+    - assets/gpt-4-1.svg
+    - assets/gpt-4o.svg
+    - assets/gpt-5.svg
+    - assets/o3.svg
+    - assets/o4-mini.svg
+    - assets/grok-3.svg
+    - assets/grok-4.svg
 

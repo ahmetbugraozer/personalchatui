@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../models/chat_message.dart';
 import '../../enums/app.enum.dart'; // New
 
 class MessageBubble extends StatelessWidget {
   final ChatMessage message;
+  // Live text override for streaming (only provided for the last assistant bubble)
+  final RxString? streamingText;
 
-  const MessageBubble({super.key, required this.message});
+  const MessageBubble({super.key, required this.message, this.streamingText});
 
   @override
   Widget build(BuildContext context) {
@@ -19,9 +22,6 @@ class MessageBubble extends StatelessWidget {
         isUser
             ? theme.colorScheme.onPrimaryContainer
             : theme.textTheme.bodyMedium?.color;
-
-    final isThinking =
-        !isUser && message.content.trim() == AppStrings.thinking; // New
 
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
@@ -65,18 +65,46 @@ class MessageBubble extends StatelessWidget {
                               .toList(),
                     ),
                   ),
-                // Thinking pulse
-                if (isThinking)
-                  _ThinkingPulse(
-                    text: AppStrings.thinking,
-                    color:
-                        theme.textTheme.bodyMedium?.color?.withValues(
-                          alpha: 0.6,
-                        ) ??
-                        Colors.grey,
-                  )
+                if (streamingText != null)
+                  // Only this bubble rebuilds on each token
+                  Obx(() {
+                    final live = streamingText!.value;
+                    final showThinking =
+                        !isUser &&
+                        message.content.trim() == AppStrings.thinking &&
+                        live.isEmpty;
+                    if (showThinking) {
+                      return _ThinkingPulse(
+                        text: AppStrings.thinking,
+                        color:
+                            theme.textTheme.bodyMedium?.color?.withValues(
+                              alpha: 0.6,
+                            ) ??
+                            Colors.grey,
+                      );
+                    }
+                    return Text(live.isEmpty ? '' : live);
+                  })
                 else
-                  Text(message.content),
+                  // Static bubble
+                  Builder(
+                    builder: (_) {
+                      final isThinking =
+                          !isUser &&
+                          message.content.trim() == AppStrings.thinking;
+                      if (isThinking) {
+                        return _ThinkingPulse(
+                          text: AppStrings.thinking,
+                          color:
+                              theme.textTheme.bodyMedium?.color?.withValues(
+                                alpha: 0.6,
+                              ) ??
+                              Colors.grey,
+                        );
+                      }
+                      return Text(message.content);
+                    },
+                  ),
               ],
             ),
           ),

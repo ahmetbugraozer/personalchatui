@@ -25,10 +25,11 @@ class AppStrings {
 
   // Subtitles/blurbs
   static const planFreeBlurb = 'Günlük görevler için zeka';
-  static const planPlusBlurb = 'Gelişmiş zekaya daha fazla erişim';
+  static const planPlusBlurb = 'Seçtiğiniz 2 grubun tüm modellerine erişim';
   static const planBusinessBlurb =
-      'Ekipler için güvenli ve iş birliğine dayalı çalışma alanları';
-  static const planProBlurb = 'ChatGPT’nin en iyi özelliklerine tam erişim';
+      'Seçtiğiniz 4 grubun tüm modellerine erişim, daha yüksek limitler';
+  static const planProBlurb =
+      'Tüm grupların modellerine sınırsız erişim ve en yüksek limitler';
 
   // CTA labels
   static const planFreeCta = 'Mevcut planın';
@@ -71,6 +72,10 @@ class AppStrings {
   static const featProProjects =
       'Geliştirilmiş projeler, görevler ve özel GPT’ler';
   static const featProSora = 'Gelişmiş Sora video üretimi';
+
+  static String unlockVendorsLabel(int groupCount) =>
+      'Seçtiğiniz $groupCount grubun tüm modelleri dahil';
+  static const featUnlockAllVendors = 'Tüm grupların tüm modelleri dahil';
 
   static const history = 'Geçmiş';
   static const attachFile = 'Dosya ekle';
@@ -175,68 +180,66 @@ class PlanMeta {
   });
 }
 
-// Single source of truth for plan properties (no more switch duplication)
-const Map<PricingPlan, PlanMeta> _kPlanMeta = {
-  PricingPlan.free: PlanMeta(
-    title: AppStrings.planFreeTitle,
-    price: AppStrings.planFreePrice,
-    blurb: AppStrings.planFreeBlurb,
-    cta: AppStrings.planFreeCta,
-    features: <String>[
-      AppStrings.featGpts,
-      AppStrings.featFileUpload,
-      AppStrings.featLimitedImageGen,
-      AppStrings.featLimitedMemory,
-      AppStrings.featLimitedResearch,
-    ],
-  ),
-  PricingPlan.plus: PlanMeta(
-    title: AppStrings.planPlusTitle,
-    price: AppStrings.planPlusPrice,
-    blurb: AppStrings.planPlusBlurb,
-    cta: AppStrings.planPlusCta,
-    isPopular: true,
-    features: <String>[
-      AppStrings.featAdvancedReasoning,
-      AppStrings.featFasterMessaging,
-      AppStrings.featFasterImageGen,
-      AppStrings.featExpandedMemory,
-      AppStrings.featDeepResearch,
-      AppStrings.featProjects,
-      AppStrings.featSora,
-      AppStrings.featCodex,
-    ],
-  ),
-  PricingPlan.business: PlanMeta(
-    title: AppStrings.planBusinessTitle,
-    price: AppStrings.planBusinessPrice,
-    blurb: AppStrings.planBusinessBlurb,
-    cta: AppStrings.planBusinessCta,
-    features: <String>[
-      AppStrings.featEverythingInPlus,
-      AppStrings.featSecureAccess,
-      AppStrings.featSsoMfa,
-      AppStrings.featPrivacy,
-      AppStrings.featSharepoint,
-      AppStrings.featProjectsCollab,
-    ],
-  ),
-  PricingPlan.pro: PlanMeta(
-    title: AppStrings.planProTitle,
-    price: AppStrings.planProPrice,
-    blurb: AppStrings.planProBlurb,
-    cta: AppStrings.planProCta,
-    features: <String>[
-      AppStrings.featProReasoning,
-      AppStrings.featUnlimitedMessages,
-      AppStrings.featMaxImageGen,
-      AppStrings.featMaxMemory,
-      AppStrings.featMaxResearch,
-      AppStrings.featProProjects,
-      AppStrings.featProSora,
-    ],
-  ),
-};
+final Map<PricingPlan, PlanMeta> _kPlanMeta = Map.unmodifiable(
+  _buildPlanMeta(),
+);
+
+Map<PricingPlan, PlanMeta> _buildPlanMeta() {
+  return {
+    PricingPlan.free: PlanMeta(
+      title: AppStrings.planFreeTitle,
+      price: AppStrings.planFreePrice,
+      blurb: AppStrings.planFreeBlurb,
+      cta: AppStrings.planFreeCta,
+      features: [
+        AppStrings.featureBasicAccess,
+        AppStrings.featureLimitedSpeed,
+        AppStrings.featureLimitedContext,
+      ],
+    ),
+    PricingPlan.plus: PlanMeta(
+      title: AppStrings.planPlusTitle,
+      price: AppStrings.planPlusPrice,
+      blurb: AppStrings.planPlusBlurb,
+      cta: AppStrings.planPlusCta,
+      isPopular: true,
+      features: [
+        AppStrings.unlockVendorsLabel(2),
+        AppStrings.featFasterMessaging,
+        AppStrings.featureFast,
+        AppStrings.featureLongContext,
+      ],
+    ),
+    PricingPlan.business: PlanMeta(
+      title: AppStrings.planBusinessTitle,
+      price: AppStrings.planBusinessPrice,
+      blurb: AppStrings.planBusinessBlurb,
+      cta: AppStrings.planBusinessCta,
+      features: [
+        AppStrings.featEverythingInPlus,
+        AppStrings.unlockVendorsLabel(4),
+        AppStrings.featFasterMessaging,
+        AppStrings.featureMoreLongContext,
+        AppStrings.featurePriority,
+        AppStrings.featProjects,
+      ],
+    ),
+    PricingPlan.pro: PlanMeta(
+      title: AppStrings.planProTitle,
+      price: AppStrings.planProPrice,
+      blurb: AppStrings.planProBlurb,
+      cta: AppStrings.planProCta,
+      features: [
+        AppStrings.featEverythingInPlus,
+        AppStrings.featUnlockAllVendors,
+        AppStrings.featUnlimitedMessages,
+        AppStrings.featMaxMemory,
+        AppStrings.featMaxResearch,
+        AppStrings.featurePriority,
+      ],
+    ),
+  };
+}
 
 // Rewritten getters to read from the map (clean and DRY)
 extension PricingPlanX on PricingPlan {
@@ -282,7 +285,7 @@ class AppModels {
       name: 'Grok 3',
       subtitle: 'Previous flagship model',
       caps: const [ModelCapability.audioInputs],
-      logoUrl: 'grok-3.png',
+      logoUrl: 'assets/grok-3.svg',
     ),
     'xai/grok-4': ModelMeta(
       id: 'xai/grok-4',
@@ -294,7 +297,7 @@ class AppModels {
         ModelCapability.fileInputs,
         ModelCapability.audioInputs,
       ],
-      logoUrl: 'grok-4.png',
+      logoUrl: 'assets/grok-4.svg',
     ),
     // Anthropic
     'anthropic/claude-sonnet-4.5': ModelMeta(
@@ -307,7 +310,7 @@ class AppModels {
         ModelCapability.fileInputs,
         ModelCapability.audioInputs,
       ],
-      logoUrl: 'claude-sonnet-4-5.png',
+      logoUrl: 'assets/claude-sonnet-4-5.svg',
     ),
     'anthropic/claude-haiku-4.5': ModelMeta(
       id: 'anthropic/claude-haiku-4.5',
@@ -319,7 +322,7 @@ class AppModels {
         ModelCapability.fileInputs,
         ModelCapability.audioInputs,
       ],
-      logoUrl: 'claude-haiku-4-5.png',
+      logoUrl: 'assets/claude-haiku-4-5.svg',
     ),
     'anthropic/claude-opus-4': ModelMeta(
       id: 'anthropic/claude-opus-4',
@@ -331,7 +334,7 @@ class AppModels {
         ModelCapability.fileInputs,
         ModelCapability.audioInputs,
       ],
-      logoUrl: 'claude-opus-4.png',
+      logoUrl: 'assets/claude-opus-4.svg',
     ),
     'anthropic/claude-sonnet-4': ModelMeta(
       id: 'anthropic/claude-sonnet-4',
@@ -343,7 +346,7 @@ class AppModels {
         ModelCapability.fileInputs,
         ModelCapability.audioInputs,
       ],
-      logoUrl: 'claude-sonnet-4.png',
+      logoUrl: 'assets/claude-sonnet-4.svg',
     ),
     'anthropic/claude-opus-4.1': ModelMeta(
       id: 'anthropic/claude-opus-4.1',
@@ -355,7 +358,7 @@ class AppModels {
         ModelCapability.fileInputs,
         ModelCapability.audioInputs,
       ],
-      logoUrl: 'claude-opus-4-1.png',
+      logoUrl: 'assets/claude-opus-4-1.svg',
     ),
     // DeepSeek
     'deepseek/r1': ModelMeta(
@@ -364,7 +367,7 @@ class AppModels {
       name: 'DeepSeek R1',
       subtitle: 'Most advanced reasoning model',
       caps: const [ModelCapability.reasoning],
-      logoUrl: 'deepseek-r1.png',
+      logoUrl: 'assets/deepseek-r1.svg',
     ),
     // Google
     'google/gemini-2.5-pro': ModelMeta(
@@ -377,7 +380,7 @@ class AppModels {
         ModelCapability.fileInputs,
         ModelCapability.audioInputs,
       ],
-      logoUrl: 'gemini-2-5-pro.png',
+      logoUrl: 'assets/gemini-2-5-pro.svg',
     ),
     'google/gemini-2.5-flash': ModelMeta(
       id: 'google/gemini-2.5-flash',
@@ -389,7 +392,7 @@ class AppModels {
         ModelCapability.fileInputs,
         ModelCapability.audioInputs,
       ],
-      logoUrl: 'gemini-2-5-flash.png',
+      logoUrl: 'assets/gemini-2-5-flash.svg',
     ),
     // OpenAI
     'openai/gpt-5': ModelMeta(
@@ -398,7 +401,7 @@ class AppModels {
       name: 'GPT-5',
       subtitle: 'Flagship model',
       caps: const [ModelCapability.fileInputs, ModelCapability.audioInputs],
-      logoUrl: 'gpt-5.png',
+      logoUrl: 'assets/gpt-5.svg',
     ),
     'openai/gpt-4o': ModelMeta(
       id: 'openai/gpt-4o',
@@ -406,7 +409,7 @@ class AppModels {
       name: 'GPT-4o',
       subtitle: 'Advanced model',
       caps: const [ModelCapability.fileInputs, ModelCapability.audioInputs],
-      logoUrl: 'gpt-4o.png',
+      logoUrl: 'assets/gpt-4o.svg',
     ),
     'openai/gpt-4.1': ModelMeta(
       id: 'openai/gpt-4.1',
@@ -414,7 +417,7 @@ class AppModels {
       name: 'GPT-4.1',
       subtitle: 'Previous flagship model',
       caps: const [ModelCapability.fileInputs, ModelCapability.audioInputs],
-      logoUrl: 'gpt-4-1.png',
+      logoUrl: 'assets/gpt-4-1.svg',
     ),
     'openai/o3': ModelMeta(
       id: 'openai/o3',
@@ -426,7 +429,7 @@ class AppModels {
         ModelCapability.fileInputs,
         ModelCapability.audioInputs,
       ],
-      logoUrl: 'o3.png',
+      logoUrl: 'assets/o3.svg',
     ),
     'openai/o4-mini': ModelMeta(
       id: 'openai/o4-mini',
@@ -434,7 +437,7 @@ class AppModels {
       name: 'o4-mini',
       subtitle: 'Efficient reasoning model',
       caps: const [],
-      logoUrl: 'o4-mini.png',
+      logoUrl: 'assets/o4-mini.svg',
     ),
   };
 

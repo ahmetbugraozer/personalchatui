@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 import 'package:get/get.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../enums/app.enum.dart';
 import '../../controllers/chat_controller.dart';
 
@@ -125,12 +126,12 @@ class _ModelTile extends StatelessWidget {
       dense: false,
       leading: ClipRRect(
         borderRadius: BorderRadius.circular(999),
-        child: Image.asset(
+        child: SvgPicture.asset(
           meta.logoUrl,
           width: 28,
           height: 28,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome),
+          fit: BoxFit.contain,
+          placeholderBuilder: (_) => const Icon(Icons.auto_awesome, size: 24),
         ),
       ),
       title: Text(

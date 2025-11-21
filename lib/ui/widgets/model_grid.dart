@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class ModelGrid extends StatelessWidget {
   final List<String> logoUrls;
@@ -28,17 +29,19 @@ class ModelGrid extends StatelessWidget {
     if (uniq.length == 1) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(999),
-        child: Image.asset(
-          uniq.first,
+        child: SizedBox(
           width: size,
           height: size,
-          fit: BoxFit.cover,
-          errorBuilder:
-              (_, __, ___) => Icon(
-                Icons.auto_awesome,
-                size: size - 2,
-                color: theme.iconTheme.color,
-              ),
+          child: SvgPicture.asset(
+            uniq.first,
+            fit: BoxFit.contain,
+            placeholderBuilder:
+                (_) => Icon(
+                  Icons.auto_awesome,
+                  size: size - 2,
+                  color: theme.iconTheme.color,
+                ),
+          ),
         ),
       );
     }
@@ -59,17 +62,19 @@ class ModelGrid extends StatelessWidget {
             uniq.take(4).map((p) {
               return ClipRRect(
                 borderRadius: BorderRadius.circular(radius),
-                child: Image.asset(
-                  p,
+                child: SizedBox(
                   width: cell,
                   height: cell,
-                  fit: BoxFit.cover,
-                  errorBuilder:
-                      (_, __, ___) => Container(
-                        color: Theme.of(context).dividerColor,
-                        alignment: Alignment.center,
-                        child: Icon(Icons.auto_awesome, size: cell * 0.6),
-                      ),
+                  child: SvgPicture.asset(
+                    p,
+                    fit: BoxFit.cover,
+                    placeholderBuilder:
+                        (_) => Container(
+                          color: Theme.of(context).dividerColor,
+                          alignment: Alignment.center,
+                          child: Icon(Icons.auto_awesome, size: cell * 0.6),
+                        ),
+                  ),
                 ),
               );
             }).toList(),

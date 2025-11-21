@@ -25,6 +25,8 @@ class _ChatAreaState extends State<ChatArea> {
   String _placeholderShown = '';
   Timer? _placeholderTimer;
   Worker? _messagesWorker;
+  Worker? _sessionWorker;
+  Worker? _streamWorker;
   bool _scrollScheduled = false;
 
   @override
@@ -35,7 +37,7 @@ class _ChatAreaState extends State<ChatArea> {
     void bindMessagesWorker() {
       _messagesWorker?.dispose();
       _messagesWorker = ever<List<ChatMessage>>(_chat.messages, (list) {
-        _scrollToBottom();
+        _scrollToBottom(); // animate only on list changes
         if (list.isEmpty) {
           _resetAndStartPlaceholder();
         } else {
@@ -46,7 +48,8 @@ class _ChatAreaState extends State<ChatArea> {
 
     bindMessagesWorker();
 
-    ever<int>(_chat.currentIndexRx, (_) {
+    _sessionWorker = ever<int>(_chat.currentIndexRx, (_) {
+      if (!mounted) return;
       bindMessagesWorker();
       _scrollToBottom();
       if (_chat.messages.isEmpty) {
@@ -56,7 +59,10 @@ class _ChatAreaState extends State<ChatArea> {
       }
     });
 
-    ever<bool>(_chat.isStreaming, (_) => _scrollToBottom());
+    _streamWorker = ever<String>(_chat.streamText, (_) {
+      if (!mounted) return;
+      _scrollToBottom(duringStream: true);
+    });
 
     // Start initial placeholder typing if empty
     if (_chat.messages.isEmpty) {
@@ -67,20 +73,33 @@ class _ChatAreaState extends State<ChatArea> {
   @override
   void dispose() {
     _messagesWorker?.dispose();
+    _sessionWorker?.dispose();
+    _streamWorker?.dispose();
     _stopPlaceholder();
     _scroll.dispose();
     super.dispose();
   }
 
-  void _scrollToBottom() {
-    // Schedule to the next frame, but avoid stacking multiple schedules.
+  void _scrollToBottom({bool duringStream = false}) {
     if (_scrollScheduled) return;
     _scrollScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollScheduled = false;
-      if (!mounted) return;
-      if (!_scroll.hasClients) return;
-      final target = _scroll.position.maxScrollExtent + 120;
+      if (!mounted || !_scroll.hasClients) return;
+      final max = _scroll.position.maxScrollExtent;
+      final target = max + 120;
+
+      if (duringStream) {
+        // Keep the bottom sticky during rapid updates without janky re-animations
+        // Only jump if we are close to the bottom already.
+        final nearBottom = (max - _scroll.position.pixels) < 200;
+        if (nearBottom) {
+          _scroll.jumpTo(max);
+        }
+        return;
+      }
+
+      // Animate only on structural changes
       _scroll.animateTo(
         target,
         duration: const Duration(milliseconds: 200),
@@ -209,9 +228,18 @@ class _ChatAreaState extends State<ChatArea> {
                           vertical: 16,
                         ),
                         itemCount: items.length,
-                        itemBuilder:
-                            (context, index) =>
-                                MessageBubble(message: items[index]),
+                        itemBuilder: (context, index) {
+                          final msg = items[index];
+                          final isLast = index == items.length - 1;
+                          final isAssistant = msg.role == ChatRole.assistant;
+                          final useStream =
+                              isLast && _chat.isStreaming.value && isAssistant;
+                          return MessageBubble(
+                            message: msg,
+                            // Only the last assistant bubble listens to live text
+                            streamingText: useStream ? _chat.streamText : null,
+                          );
+                        },
                       );
                     });
                   },
