@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sizer/sizer.dart';
 
 import 'core/theme/app_theme.dart';
 import 'controllers/theme_controller.dart';
@@ -24,19 +23,15 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Get.find<ThemeController>();
-    return Sizer(
-      builder: (context, orientation, deviceType) {
-        return Obx(
-          () => GetMaterialApp(
-            debugShowCheckedModeBanner: false,
-            title: AppStrings.appTitle,
-            theme: AppTheme.light,
-            darkTheme: AppTheme.dark,
-            themeMode: theme.themeMode.value,
-            home: const HomePage(),
-          ),
-        );
-      },
+    return Obx(
+      () => GetMaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: AppStrings.appTitle,
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: theme.themeMode.value,
+        home: const HomePage(),
+      ),
     );
   }
 }

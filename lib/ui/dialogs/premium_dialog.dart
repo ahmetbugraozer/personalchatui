@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sizer/sizer.dart';
+import '../../core/sizer/app_sizer.dart';
 
 import '../../enums/app.enum.dart';
 

@@ -12,6 +12,18 @@ class SidebarPanel extends StatelessWidget {
   final bool inDrawer;
   const SidebarPanel({super.key, this.inDrawer = false});
 
+  void _closeDrawerIfPossible(BuildContext context) {
+    final scaffold = Scaffold.maybeOf(context);
+    if (scaffold?.isDrawerOpen ?? false) {
+      scaffold!.closeDrawer();
+      return;
+    }
+    final navigator = Navigator.maybeOf(context);
+    if (navigator?.canPop() ?? false) {
+      navigator!.pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final ctrl = Get.find<SidebarController>();
@@ -56,7 +68,7 @@ class SidebarPanel extends StatelessWidget {
                           tooltip: AppTooltips.toggleSidebar,
                           onPressed: () {
                             if (inDrawer) {
-                              Navigator.of(context).pop(); // close Drawer
+                              _closeDrawerIfPossible(context);
                             } else {
                               ctrl.toggle(); // collapse/expand in wide layout
                             }
@@ -90,9 +102,7 @@ class SidebarPanel extends StatelessWidget {
                           onTap: () {
                             final started = chat.newChat();
                             if (inDrawer) {
-                              Navigator.of(
-                                context,
-                              ).pop(); // close drawer in narrow mode
+                              _closeDrawerIfPossible(context);
                             }
                             if (started) {
                               Get.snackbar(
@@ -106,17 +116,15 @@ class SidebarPanel extends StatelessWidget {
                         ),
                         _SidebarItem(
                           icon: Icons.search_rounded,
-                          label: AppStrings.searchChats,
+                          label: AppStrings.searchChatsHint,
                           open: open,
                           onTap: () async {
-                            final navigator = Navigator.of(context);
                             final result = await showDialog(
                               context: context,
                               builder: (_) => const SearchChatsDialog(),
                             );
-                            // Close drawer only if action taken in dialog
                             if (inDrawer && result != null) {
-                              navigator.pop();
+                              _closeDrawerIfPossible(context);
                             }
                           },
                         ),
@@ -179,7 +187,7 @@ class SidebarPanel extends StatelessWidget {
                                 onTap: () {
                                   chat.selectSession(realIndex);
                                   if (inDrawer) {
-                                    Navigator.of(context).pop();
+                                    _closeDrawerIfPossible(context);
                                   }
                                 },
                               );
@@ -217,14 +225,12 @@ class SidebarPanel extends StatelessWidget {
                           label: AppStrings.library,
                           open: open,
                           onTap: () async {
-                            final navigator = Navigator.of(context);
                             final result = await showDialog(
                               context: context,
                               builder: (_) => const LibraryDialog(),
                             );
-                            // Close drawer only if action taken in dialog (e.g., "Sohbette aç")
                             if (inDrawer && result != null) {
-                              navigator.pop();
+                              _closeDrawerIfPossible(context);
                             }
                           },
                         ),

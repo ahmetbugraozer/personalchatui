@@ -1,12 +1,85 @@
 import 'package:flutter/material.dart';
-import 'package:sizer/sizer.dart';
 import 'package:get/get.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../../core/sizer/app_sizer.dart';
 import '../../enums/app.enum.dart';
 import '../../controllers/chat_controller.dart';
 
-class SelectModelDialog extends StatelessWidget {
+class SelectModelDialog extends StatefulWidget {
   const SelectModelDialog({super.key});
+
+  @override
+  State<SelectModelDialog> createState() => _SelectModelDialogState();
+}
+
+class _SelectModelDialogState extends State<SelectModelDialog> {
+  final _searchCtrl = TextEditingController();
+  final Set<ModelCapability> _filters = {};
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  void _toggleFilter(ModelCapability cap) {
+    setState(() {
+      if (_filters.contains(cap)) {
+        _filters.remove(cap);
+      } else {
+        _filters.add(cap);
+      }
+    });
+  }
+
+  bool _matchesFilters(ModelMeta meta) {
+    if (_filters.isEmpty) return true;
+    return _filters.every(meta.caps.contains);
+  }
+
+  bool _matchesSearch(ModelMeta meta) {
+    if (_query.isEmpty) return true;
+    final q = _query;
+    return meta.name.toLowerCase().contains(q) ||
+        meta.subtitle.toLowerCase().contains(q);
+  }
+
+  List<ModelMeta> _modelsForVendor(ModelVendor vendor) {
+    final ids = AppModels.byVendor[vendor] ?? const <String>[];
+    return ids
+        .map(AppModels.meta)
+        .where((m) => _matchesFilters(m) && _matchesSearch(m))
+        .toList();
+  }
+
+  List<Widget> _buildVendorSections(BuildContext context, String currentId) {
+    final theme = Theme.of(context);
+    final titles = AppModels.vendorTitles;
+    final vendors = ModelVendor.values;
+    final len = titles.length < vendors.length ? titles.length : vendors.length;
+    final widgets = <Widget>[];
+    for (var i = 0; i < len; i++) {
+      final models = _modelsForVendor(vendors[i]);
+      if (models.isEmpty) continue;
+      widgets.add(
+        Padding(
+          padding: EdgeInsets.only(
+            top: 1.0.h.clamp(8, 16),
+            bottom: 0.6.h.clamp(4, 10),
+          ),
+          child: Text(titles[i], style: theme.textTheme.titleLarge),
+        ),
+      );
+      widgets.addAll(
+        models.map(
+          (meta) => _ModelTile(meta: meta, isSelected: meta.id == currentId),
+        ),
+      );
+      widgets.add(const Divider(height: 24));
+    }
+    return widgets;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +108,8 @@ class SelectModelDialog extends StatelessWidget {
             ),
             child: Padding(
               padding: EdgeInsets.all(2.h.clamp(12, 24)),
-              child: ListView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Padding(
                     padding: EdgeInsets.only(bottom: 1.6.h.clamp(10, 22)),
@@ -44,27 +118,65 @@ class SelectModelDialog extends StatelessWidget {
                       style: theme.textTheme.titleLarge,
                     ),
                   ),
-                  Obx(() {
-                    final currentId = chat.currentModelId;
-                    final titles = AppModels.vendorTitles;
-                    final vendors = ModelVendor.values;
-                    final len =
-                        titles.length < vendors.length
-                            ? titles.length
-                            : vendors.length;
-                    final widgets = <Widget>[];
-                    for (var i = 0; i < len; i++) {
-                      widgets.addAll(
-                        _buildVendorSection(
-                          context,
-                          titles[i],
-                          vendors[i],
-                          currentId,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children:
+                                ModelCapability.values.map((cap) {
+                                  final selected = _filters.contains(cap);
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: FilterChip(
+                                      avatar: Icon(_capIcon(cap), size: 16),
+                                      label: Text(cap.label),
+                                      selected: selected,
+                                      onSelected: (_) => _toggleFilter(cap),
+                                    ),
+                                  );
+                                }).toList(),
+                          ),
                         ),
+                      ),
+                      SizedBox(width: 12),
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: isNarrow ? 190 : 280,
+                        ),
+                        child: TextField(
+                          controller: _searchCtrl,
+                          decoration: InputDecoration(
+                            hintText: AppStrings.searchModelsHint,
+                            prefixIcon: const Icon(Icons.search_rounded),
+                          ),
+                          onChanged:
+                              (value) => setState(
+                                () => _query = value.trim().toLowerCase(),
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 1.2.h.clamp(8, 16)),
+                  Expanded(
+                    child: Obx(() {
+                      final sections = _buildVendorSections(
+                        context,
+                        chat.currentModelId,
                       );
-                    }
-                    return Column(children: widgets);
-                  }),
+                      if (sections.isEmpty) {
+                        return Center(
+                          child: Text(
+                            AppStrings.noResults,
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        );
+                      }
+                      return ListView(children: sections);
+                    }),
+                  ),
                 ],
               ),
             ),
@@ -72,32 +184,6 @@ class SelectModelDialog extends StatelessWidget {
         },
       ),
     );
-  }
-
-  List<Widget> _buildVendorSection(
-    BuildContext context,
-    String title,
-    ModelVendor vendor,
-    String currentModelId,
-  ) {
-    final theme = Theme.of(context);
-    final ids = AppModels.byVendor[vendor] ?? const <String>[];
-    if (ids.isEmpty) return const [];
-    return [
-      Padding(
-        padding: EdgeInsets.only(
-          top: 1.0.h.clamp(8, 16),
-          bottom: 0.6.h.clamp(4, 10),
-        ),
-        child: Text(title, style: theme.textTheme.titleLarge),
-      ),
-      ...ids.map((id) {
-        final m = AppModels.meta(id);
-        final selected = m.id == currentModelId;
-        return _ModelTile(meta: m, isSelected: selected);
-      }),
-      const Divider(height: 24),
-    ];
   }
 }
 
@@ -110,18 +196,6 @@ class _ModelTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final caps = meta.caps;
-
-    IconData capIcon(ModelCapability c) {
-      switch (c) {
-        case ModelCapability.reasoning:
-          return Icons.psychology_alt_outlined;
-        case ModelCapability.fileInputs:
-          return Icons.attach_file_rounded;
-        case ModelCapability.audioInputs:
-          return Icons.mic_none_rounded;
-      }
-    }
-
     return ListTile(
       dense: false,
       leading: ClipRRect(
@@ -148,34 +222,58 @@ class _ModelTile extends StatelessWidget {
       ),
       subtitle: Padding(
         padding: EdgeInsets.only(top: 0.3.h.clamp(2, 6)),
-        child: Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 8,
-          runSpacing: 4,
-          children: [
-            Text(
-              meta.subtitle,
-              style: theme.textTheme.bodyMedium,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            ...caps.map(
-              (c) => Icon(
-                capIcon(c),
-                size: 16,
-                color: theme.textTheme.bodySmall?.color,
-              ),
-            ),
-          ],
+        child: Text(
+          meta.subtitle,
+          style: theme.textTheme.bodyMedium,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
-      trailing:
-          isSelected
-              ? Icon(Icons.check_circle, color: theme.colorScheme.primary)
-              : const Icon(Icons.chevron_right_rounded),
+      trailing: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 200),
+        child: Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children:
+              caps
+                  .map(
+                    (cap) => Tooltip(
+                      message: cap.label,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.08,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          _capIcon(cap),
+                          size: 16,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+        ),
+      ),
       onTap: () => Navigator.of(context).pop(meta.id),
       selected: isSelected,
       selectedTileColor: theme.colorScheme.primary.withValues(alpha: 0.06),
     );
+  }
+}
+
+IconData _capIcon(ModelCapability c) {
+  switch (c) {
+    case ModelCapability.reasoning:
+      return Icons.psychology_alt_outlined;
+    case ModelCapability.fileInputs:
+      return Icons.attach_file_rounded;
+    case ModelCapability.audioInputs:
+      return Icons.mic_none_rounded;
+    case ModelCapability.textInputs:
+      return Icons.chat_bubble_outline_rounded;
   }
 }

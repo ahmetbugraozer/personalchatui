@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sizer/sizer.dart';
+import '../../core/sizer/app_sizer.dart';
 import '../../controllers/chat_controller.dart';
 import '../../enums/app.enum.dart';
 import '../widgets/model_grid.dart';
@@ -128,7 +128,7 @@ class _SearchChatsDialogState extends State<SearchChatsDialog> {
                       controller: _controller,
                       autofocus: true,
                       decoration: InputDecoration(
-                        hintText: AppStrings.searchHint,
+                        hintText: AppStrings.searchChatsHint,
                         prefixIcon: const Icon(Icons.search_rounded),
                         isDense: true,
                         filled: true,

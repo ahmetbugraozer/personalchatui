@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sizer/sizer.dart';
+import '../../core/sizer/app_sizer.dart';
 import 'dart:async';
 
 import '../../controllers/chat_controller.dart';

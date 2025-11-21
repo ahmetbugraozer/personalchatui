@@ -3,7 +3,6 @@ import 'dart:math';
 class AppStrings {
   static const premium = 'Premium';
   static const newChat = 'Yeni sohbet';
-  static const searchChats = 'Sohbetleri ara';
   static const projects = 'Projeler';
   static const library = 'Kitaplık';
 
@@ -106,7 +105,8 @@ class AppStrings {
   static const appTitle = 'Personal Chat UI';
   static const chats = 'Sohbetler';
   static const noChatsYet = 'Henüz sohbet yok';
-  static const searchHint = 'Sohbetleri ara…';
+  static const searchChatsHint = 'Sohbetleri ara…';
+  static const searchModelsHint = 'Model ara…';
   static const noResults = 'Sonuç bulunamadı';
   static const close = 'Kapat';
   static const continueAction = 'Devam et';
@@ -253,10 +253,25 @@ extension PricingPlanX on PricingPlan {
 }
 
 // Models catalog: vendors, capabilities, metadata and helpers
-enum ModelVendor { xai, anthropic, deepseek, google, openai }
+enum ModelVendor { xai, anthropic, deepseek, google, openai, alibaba, meta }
 
 // Changed: imageInputs -> fileInputs. hybridReasoning removed previously.
-enum ModelCapability { reasoning, fileInputs, audioInputs }
+enum ModelCapability { reasoning, fileInputs, audioInputs, textInputs }
+
+extension ModelCapabilityX on ModelCapability {
+  String get label {
+    switch (this) {
+      case ModelCapability.reasoning:
+        return 'Mantık yürütme';
+      case ModelCapability.fileInputs:
+        return 'Dosya girdileri';
+      case ModelCapability.audioInputs:
+        return 'Ses girdileri';
+      case ModelCapability.textInputs:
+        return 'Metin girdileri';
+    }
+  }
+}
 
 class ModelMeta {
   final String id; // unique key "vendor/model-name"
@@ -284,7 +299,7 @@ class AppModels {
       vendor: ModelVendor.xai,
       name: 'Grok 3',
       subtitle: 'Previous flagship model',
-      caps: const [ModelCapability.audioInputs],
+      caps: const [ModelCapability.audioInputs, ModelCapability.textInputs],
       logoUrl: 'assets/grok-3.svg',
     ),
     'xai/grok-4': ModelMeta(
@@ -296,6 +311,7 @@ class AppModels {
         ModelCapability.reasoning,
         ModelCapability.fileInputs,
         ModelCapability.audioInputs,
+        ModelCapability.textInputs,
       ],
       logoUrl: 'assets/grok-4.svg',
     ),
@@ -309,6 +325,7 @@ class AppModels {
         ModelCapability.reasoning,
         ModelCapability.fileInputs,
         ModelCapability.audioInputs,
+        ModelCapability.textInputs,
       ],
       logoUrl: 'assets/claude-sonnet-4-5.svg',
     ),
@@ -321,6 +338,7 @@ class AppModels {
         ModelCapability.reasoning,
         ModelCapability.fileInputs,
         ModelCapability.audioInputs,
+        ModelCapability.textInputs,
       ],
       logoUrl: 'assets/claude-haiku-4-5.svg',
     ),
@@ -333,6 +351,7 @@ class AppModels {
         ModelCapability.reasoning,
         ModelCapability.fileInputs,
         ModelCapability.audioInputs,
+        ModelCapability.textInputs,
       ],
       logoUrl: 'assets/claude-opus-4.svg',
     ),
@@ -345,6 +364,7 @@ class AppModels {
         ModelCapability.reasoning,
         ModelCapability.fileInputs,
         ModelCapability.audioInputs,
+        ModelCapability.textInputs,
       ],
       logoUrl: 'assets/claude-sonnet-4.svg',
     ),
@@ -357,6 +377,7 @@ class AppModels {
         ModelCapability.reasoning,
         ModelCapability.fileInputs,
         ModelCapability.audioInputs,
+        ModelCapability.textInputs,
       ],
       logoUrl: 'assets/claude-opus-4-1.svg',
     ),
@@ -366,7 +387,7 @@ class AppModels {
       vendor: ModelVendor.deepseek,
       name: 'DeepSeek R1',
       subtitle: 'Most advanced reasoning model',
-      caps: const [ModelCapability.reasoning],
+      caps: const [ModelCapability.reasoning, ModelCapability.textInputs],
       logoUrl: 'assets/deepseek-r1.svg',
     ),
     // Google
@@ -379,6 +400,7 @@ class AppModels {
         ModelCapability.reasoning,
         ModelCapability.fileInputs,
         ModelCapability.audioInputs,
+        ModelCapability.textInputs,
       ],
       logoUrl: 'assets/gemini-2-5-pro.svg',
     ),
@@ -391,8 +413,21 @@ class AppModels {
         ModelCapability.reasoning,
         ModelCapability.fileInputs,
         ModelCapability.audioInputs,
+        ModelCapability.textInputs,
       ],
       logoUrl: 'assets/gemini-2-5-flash.svg',
+    ),
+    'google/gemini-3-pro': ModelMeta(
+      id: 'google/gemini-3-pro',
+      vendor: ModelVendor.google,
+      name: 'Gemini 3 Pro',
+      subtitle: 'Most advanced reasoning model',
+      caps: const [
+        ModelCapability.reasoning,
+        ModelCapability.fileInputs, // image inputs
+        ModelCapability.textInputs,
+      ],
+      logoUrl: 'assets/gemini-3-pro.svg',
     ),
     // OpenAI
     'openai/gpt-5': ModelMeta(
@@ -400,7 +435,11 @@ class AppModels {
       vendor: ModelVendor.openai,
       name: 'GPT-5',
       subtitle: 'Flagship model',
-      caps: const [ModelCapability.fileInputs, ModelCapability.audioInputs],
+      caps: const [
+        ModelCapability.fileInputs,
+        ModelCapability.audioInputs,
+        ModelCapability.textInputs,
+      ],
       logoUrl: 'assets/gpt-5.svg',
     ),
     'openai/gpt-4o': ModelMeta(
@@ -408,7 +447,11 @@ class AppModels {
       vendor: ModelVendor.openai,
       name: 'GPT-4o',
       subtitle: 'Advanced model',
-      caps: const [ModelCapability.fileInputs, ModelCapability.audioInputs],
+      caps: const [
+        ModelCapability.fileInputs,
+        ModelCapability.audioInputs,
+        ModelCapability.textInputs,
+      ],
       logoUrl: 'assets/gpt-4o.svg',
     ),
     'openai/gpt-4.1': ModelMeta(
@@ -416,7 +459,11 @@ class AppModels {
       vendor: ModelVendor.openai,
       name: 'GPT-4.1',
       subtitle: 'Previous flagship model',
-      caps: const [ModelCapability.fileInputs, ModelCapability.audioInputs],
+      caps: const [
+        ModelCapability.fileInputs,
+        ModelCapability.audioInputs,
+        ModelCapability.textInputs,
+      ],
       logoUrl: 'assets/gpt-4-1.svg',
     ),
     'openai/o3': ModelMeta(
@@ -428,6 +475,7 @@ class AppModels {
         ModelCapability.reasoning,
         ModelCapability.fileInputs,
         ModelCapability.audioInputs,
+        ModelCapability.textInputs,
       ],
       logoUrl: 'assets/o3.svg',
     ),
@@ -436,8 +484,26 @@ class AppModels {
       vendor: ModelVendor.openai,
       name: 'o4-mini',
       subtitle: 'Efficient reasoning model',
-      caps: const [],
+      caps: const [ModelCapability.textInputs],
       logoUrl: 'assets/o4-mini.svg',
+    ),
+    // Alibaba
+    'alibaba/qwen3': ModelMeta(
+      id: 'alibaba/qwen3',
+      vendor: ModelVendor.alibaba,
+      name: 'Qwen 3',
+      subtitle: 'Efficient model',
+      caps: const [ModelCapability.textInputs],
+      logoUrl: 'assets/qwen3.svg',
+    ),
+    // Meta
+    'meta/llama-4-maverick': ModelMeta(
+      id: 'meta/llama-4-maverick',
+      vendor: ModelVendor.meta,
+      name: 'Llama 4 Maverick',
+      subtitle: 'Advanced model',
+      caps: const [ModelCapability.textInputs],
+      logoUrl: 'assets/llama-4-maverick.svg',
     ),
   };
 
@@ -448,6 +514,8 @@ class AppModels {
     'DeepSeek',
     'Google',
     'OpenAI',
+    'Alibaba',
+    'Meta',
   ];
 
   // Default model id used for new sessions — pick once randomly per app run

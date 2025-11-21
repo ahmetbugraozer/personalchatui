@@ -14,7 +14,6 @@ dependencies:
 
   cupertino_icons: ^1.0.8
   get: ^4.6.6
-  sizer: ^2.0.15
   http: ^1.2.2
   google_fonts: ^6.2.1
   file_selector: ^1.0.3
@@ -41,11 +40,13 @@ flutter:
     - assets/deepseek-r1.svg
     - assets/gemini-2-5-flash.svg
     - assets/gemini-2-5-pro.svg
+    - assets/gemini-3-pro.svg
     - assets/gpt-4-1.svg
     - assets/gpt-4o.svg
     - assets/gpt-5.svg
-    - assets/o3.svg
-    - assets/o4-mini.svg
     - assets/grok-3.svg
     - assets/grok-4.svg
-
+    - assets/llama-4-maverick.svg
+    - assets/o3.svg
+    - assets/o4-mini.svg
+    - assets/qwen3.svg
