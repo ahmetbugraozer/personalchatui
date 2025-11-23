@@ -567,7 +567,9 @@ class _InputBarState extends State<InputBar> {
                                           Icons.psychology_rounded,
                                           size: 18,
                                         ),
-                                        label: const Text('Mantık yürüt'),
+                                        label: const Text(
+                                          AppStrings.reasoningText,
+                                        ),
                                         style: FilledButton.styleFrom(
                                           padding: EdgeInsets.symmetric(
                                             horizontal: thinkPadWide,

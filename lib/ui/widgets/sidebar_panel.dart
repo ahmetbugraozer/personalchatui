@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:personalchatui/core/sizer/app_sizer.dart';
 import '../../controllers/chat_controller.dart';
 import '../../controllers/sidebar_controller.dart';
 import '../../enums/app.enum.dart';
@@ -28,6 +29,8 @@ class SidebarPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final ctrl = Get.find<SidebarController>();
     final chat = Get.find<ChatController>();
+
+    BuildContext exampleContext = context;
 
     return Obx(() {
       final theme = Theme.of(context);
@@ -124,7 +127,11 @@ class SidebarPanel extends StatelessWidget {
                               builder: (_) => const SearchChatsDialog(),
                             );
                             if (inDrawer && result != null) {
-                              _closeDrawerIfPossible(context);
+                              _closeDrawerIfPossible(
+                                exampleContext.mounted
+                                    ? exampleContext
+                                    : context,
+                              );
                             }
                           },
                         ),
@@ -230,7 +237,11 @@ class SidebarPanel extends StatelessWidget {
                               builder: (_) => const LibraryDialog(),
                             );
                             if (inDrawer && result != null) {
-                              _closeDrawerIfPossible(context);
+                              _closeDrawerIfPossible(
+                                exampleContext.mounted
+                                    ? exampleContext
+                                    : context,
+                              );
                             }
                           },
                         ),
@@ -297,21 +308,18 @@ class _SidebarItem extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.only(
-                              right: trailing != null ? 8 : 0,
-                            ),
-                            child: Text(
-                              label,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              softWrap: false,
-                              style: theme.textTheme.bodyMedium,
-                            ),
+                          flex: 10.w.toInt(),
+                          child: Text(
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            softWrap: false,
+                            style: theme.textTheme.bodyMedium,
                           ),
                         ),
                         if (trailing != null)
                           Flexible(
+                            flex: 1.w.toInt(),
                             fit: FlexFit.loose,
                             child: Align(
                               alignment: Alignment.centerRight,

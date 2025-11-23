@@ -114,7 +114,7 @@ class _SelectModelDialogState extends State<SelectModelDialog> {
                   Padding(
                     padding: EdgeInsets.only(bottom: 1.6.h.clamp(10, 22)),
                     child: Text(
-                      'Select a model',
+                      AppStrings.modelTitle,
                       style: theme.textTheme.titleLarge,
                     ),
                   ),
