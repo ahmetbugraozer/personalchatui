@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:personalchatui/core/sizer/app_sizer.dart';
 import '../../controllers/chat_controller.dart';
 import '../../controllers/sidebar_controller.dart';
 import '../../enums/app.enum.dart';
 import '../dialogs/search_chats_dialog.dart';
-import 'model_grid.dart';
-import '../dialogs/library_dialog.dart'; // + add import
+import '../dialogs/library_dialog.dart';
+import '../dialogs/delete_chat_dialog.dart';
+import 'sidebar/sidebar_entry.dart';
+import 'sidebar/sidebar_history_item.dart';
 
 class SidebarPanel extends StatelessWidget {
   // Indicate this panel is rendered inside the Drawer
@@ -23,6 +24,19 @@ class SidebarPanel extends StatelessWidget {
     if (navigator?.canPop() ?? false) {
       navigator!.pop();
     }
+  }
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    ChatController chat,
+    int index,
+    String label,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => DeleteChatDialog(title: label),
+    );
+    if (confirmed == true) chat.deleteSession(index);
   }
 
   @override
@@ -98,7 +112,7 @@ class SidebarPanel extends StatelessWidget {
                     child: ListView(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       children: [
-                        _SidebarItem(
+                        SidebarEntry(
                           icon: Icons.add_comment_rounded,
                           label: AppStrings.newChat,
                           open: open,
@@ -117,7 +131,7 @@ class SidebarPanel extends StatelessWidget {
                             }
                           },
                         ),
-                        _SidebarItem(
+                        SidebarEntry(
                           icon: Icons.search_rounded,
                           label: AppStrings.searchChatsHint,
                           open: open,
@@ -146,12 +160,9 @@ class SidebarPanel extends StatelessWidget {
                           ),
                         ),
                         Obx(() {
-                          // Also react to currentIndex changes for selection highlight
                           final _ = chat.currentIndexRx.value;
-                          final indices =
-                              chat.nonEmptySessionIndices; // oldest -> newest
-                          final count = indices.length;
-                          if (count == 0) {
+                          final indices = chat.nonEmptySessionIndices;
+                          if (indices.isEmpty) {
                             return open
                                 ? Padding(
                                   padding: const EdgeInsets.symmetric(
@@ -167,38 +178,44 @@ class SidebarPanel extends StatelessWidget {
                                 : const SizedBox.shrink();
                           }
                           return Column(
-                            children: List.generate(count, (i) {
-                              final realIndex = indices[count - 1 - i];
-                              final label = chat.titleFor(realIndex);
-                              final isSelected = realIndex == chat.currentIndex;
-
-                              // Listen to model history reactively and pass to grid
-                              final history =
-                                  chat.modelHistoryRxFor(realIndex).toList();
-                              return _SidebarItem(
-                                icon:
-                                    isSelected
-                                        ? Icons.chat_bubble_rounded
-                                        : Icons.chat_bubble_outline_rounded,
-                                label: label,
-                                open: open,
-                                trailing: ModelGrid(
-                                  logoUrls:
-                                      history
+                            children:
+                                indices.reversed.map((realIndex) {
+                                  final label = chat.titleFor(realIndex);
+                                  final logos =
+                                      chat
+                                          .modelHistoryRxFor(realIndex)
                                           .map(
                                             (id) => AppModels.meta(id).logoUrl,
                                           )
-                                          .toList(),
-                                  size: history.length > 1 ? 32 : 20,
-                                ),
-                                onTap: () {
-                                  chat.selectSession(realIndex);
-                                  if (inDrawer) {
-                                    _closeDrawerIfPossible(context);
-                                  }
-                                },
-                              );
-                            }),
+                                          .toList();
+                                  return SidebarHistoryItem(
+                                    open: open,
+                                    label: label,
+                                    logos: logos,
+                                    isSelected: realIndex == chat.currentIndex,
+                                    isFavorite: chat.isFavorite(realIndex),
+                                    onTap: () {
+                                      chat.selectSession(realIndex);
+                                      if (inDrawer) {
+                                        _closeDrawerIfPossible(context);
+                                      }
+                                    },
+                                    onRename:
+                                        (value) => chat.renameSession(
+                                          realIndex,
+                                          value,
+                                        ),
+                                    onToggleFavorite:
+                                        () => chat.toggleFavorite(realIndex),
+                                    onDelete:
+                                        () => _confirmDelete(
+                                          context,
+                                          chat,
+                                          realIndex,
+                                          label,
+                                        ),
+                                  );
+                                }).toList(),
                           );
                         }),
                         const Divider(height: 24),
@@ -211,7 +228,7 @@ class SidebarPanel extends StatelessWidget {
                             open: open,
                           ),
                         ),
-                        _SidebarItem(
+                        SidebarEntry(
                           icon: Icons.work_outline_rounded,
                           label: AppStrings.projects,
                           open: open,
@@ -227,7 +244,7 @@ class SidebarPanel extends StatelessWidget {
                             open: open,
                           ),
                         ),
-                        _SidebarItem(
+                        SidebarEntry(
                           icon: Icons.folder_outlined,
                           label: AppStrings.library,
                           open: open,
@@ -258,89 +275,6 @@ class SidebarPanel extends StatelessWidget {
   }
 }
 
-class _SidebarItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool open;
-  final VoidCallback? onTap;
-  final Widget? trailing;
-
-  const _SidebarItem({
-    required this.icon,
-    required this.label,
-    required this.open,
-    this.onTap,
-    this.trailing,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Tooltip(
-      message: label,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 40,
-                alignment: Alignment.center,
-                child: Icon(icon, size: 22),
-              ),
-              if (open)
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: theme.dividerColor,
-                          width: 0.4,
-                        ),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.max,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          flex: 10.w.toInt(),
-                          child: Text(
-                            label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            softWrap: false,
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                        ),
-                        if (trailing != null)
-                          Flexible(
-                            flex: 1.w.toInt(),
-                            fit: FlexFit.loose,
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: trailing!,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _SectionHeader extends StatelessWidget {
   final String text;
   final bool open;
@@ -354,10 +288,10 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Text(
         text,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
           color: Theme.of(
             context,
-          ).textTheme.labelMedium?.color?.withValues(alpha: 0.7),
+          ).textTheme.labelLarge?.color?.withValues(alpha: 0.7),
         ),
       ),
     );

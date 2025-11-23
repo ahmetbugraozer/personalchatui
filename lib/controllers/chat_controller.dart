@@ -86,8 +86,13 @@ class ChatController extends GetxController {
     return indices;
   }
 
+  final RxMap<int, String> _customTitles = <int, String>{}.obs;
+  final RxSet<int> favoriteSessions = <int>{}.obs;
+
   // Title helper for a particular session index
   String titleFor(int index) {
+    final override = _customTitles[index];
+    if (override != null && override.isNotEmpty) return override;
     final s = _sessions[index];
     return s.title.value.isEmpty ? 'Yeni sohbet' : s.title.value;
   }
@@ -169,6 +174,70 @@ class ChatController extends GetxController {
       _sessions[_current.value].thinkingEnabled.value = v;
   void toggleCurrentThinking() =>
       setCurrentThinkingEnabled(!currentThinkingEnabled);
+
+  bool isFavorite(int index) => favoriteSessions.contains(index);
+
+  void toggleFavorite(int index) {
+    if (favoriteSessions.contains(index)) {
+      favoriteSessions.remove(index);
+    } else {
+      favoriteSessions.add(index);
+    }
+    favoriteSessions.refresh();
+  }
+
+  void renameSession(int index, String title) {
+    final trimmed = title.trim();
+    if (trimmed.isEmpty) {
+      if (_customTitles.remove(index) != null) _customTitles.refresh();
+      return;
+    }
+    _customTitles[index] = trimmed;
+    _customTitles.refresh();
+  }
+
+  void deleteSession(int index) {
+    if (index < 0 || index >= _sessions.length) return;
+    _sessions.removeAt(index);
+    _reindexSessionMetadata(index);
+
+    if (_sessions.isEmpty) {
+      _sessions.add(ChatSession());
+      _current.value = 0;
+      return;
+    }
+
+    final nextIndex =
+        currentIndex > index
+            ? currentIndex - 1
+            : currentIndex.clamp(0, _sessions.length - 1);
+    selectSession(nextIndex);
+  }
+
+  void _reindexSessionMetadata(int removedIndex) {
+    if (_customTitles.isNotEmpty) {
+      final mapped = <int, String>{};
+      _customTitles.forEach((key, value) {
+        if (key == removedIndex) return;
+        mapped[key > removedIndex ? key - 1 : key] = value;
+      });
+      _customTitles
+        ..clear()
+        ..addAll(mapped);
+      _customTitles.refresh();
+    }
+    if (favoriteSessions.isNotEmpty) {
+      final mapped = <int>{};
+      for (final idx in favoriteSessions) {
+        if (idx == removedIndex) continue;
+        mapped.add(idx > removedIndex ? idx - 1 : idx);
+      }
+      favoriteSessions
+        ..clear()
+        ..addAll(mapped);
+      favoriteSessions.refresh();
+    }
+  }
 
   @override
   void onInit() {

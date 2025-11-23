@@ -112,6 +112,19 @@ class AppStrings {
   static const searchModelsHint = 'Model ara…';
   static const noResults = 'Sonuç bulunamadı';
   static const close = 'Kapat';
+  static const renameChat = 'Sohbet adını değiştir';
+  static const favoriteChat = 'Sohbeti favorile';
+  static const unfavoriteChat = 'Favoriden çıkar';
+  static const deleteChat = 'Sohbeti sil';
+  static const deleteChatConfirmTitle = 'Sohbet silinsin mi?';
+  static const deleteChatConfirmBody =
+      'Bu sohbet tüm mesajlarıyla birlikte kalıcı olarak silinecek.';
+  static const delete = 'Sil';
+  static const cancel = 'İptal';
+  static const expandSidebarToRename =
+      'Sohbet başlığını düzenlemek için paneli genişlet';
+  static String deleteChatDescription(String title) =>
+      '“$title” sohbeti kalıcı olarak silinecek.';
   static const continueAction = 'Devam et';
 
   // Premium dialog
