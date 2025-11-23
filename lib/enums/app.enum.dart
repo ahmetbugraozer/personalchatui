@@ -19,7 +19,7 @@ class AppStrings {
   // Prices (display-ready)
   static const planFreePrice = '₺0';
   static const planPlusPrice = '₺20/ay';
-  static const planBusinessPrice = '₺25/ay';
+  static const planBusinessPrice = '₺100/ay';
   static const planProPrice = '₺200/ay';
 
   // Subtitles/blurbs
@@ -49,27 +49,28 @@ class AppStrings {
       'Genişletilmiş ve daha hızlı görsel oluşturma';
   static const featExpandedMemory = 'Genişletilmiş bellek ve bağlam';
   static const featDeepResearch = 'Genişletilmiş derin araştırma ve ajan modu';
-  static const featProjects = 'Projeler, görevler, özel GPT’ler';
+  static const featProjects = 'Projeler ve görevler modu';
   static const featSora = 'Sora video üretimi';
   static const featCodex = 'Kodex için';
 
   static const featEverythingInPlus =
       'Plus’taki her şey, daha da yüksek limitlerle';
+  static const featEverythingInBusiness =
+      'Business’taki her şey, daha da yüksek limitlerle';
   static const featSecureAccess = 'Ekibin en iyi modellerimize sınırsız erişim';
   static const featSsoMfa = 'SSO, MFA ve daha fazlasıyla gelişmiş güvenlik';
   static const featPrivacy =
       'Gizlilik yerleşik; veriler hiçbir zaman eğitim için kullanılmaz';
   static const featSharepoint = 'Sharepoint ve diğer araçlarla entegrasyon';
-  static const featProjectsCollab =
-      'Paylaşılan projeler ve özel GPT’ler gibi ekipler özellikleri';
+  static const featProjectsCollab = 'Paylaşılan projeler ve özel modeller';
 
-  static const featProReasoning = 'Pro akıl yürütme yeteneğine sahip GPT-5';
+  static const featProReasoning = 'Pro akıl yürütme yeteneğine sahip modeller';
   static const featUnlimitedMessages = 'Sınırsız mesajlar ve yüklemeler';
   static const featMaxImageGen = 'Sınırsız ve daha hızlı görsel oluşturma';
   static const featMaxMemory = 'Maksimum bellek ve bağlam';
   static const featMaxResearch = 'Maksimum derin araştırma ve ajan modu';
   static const featProProjects =
-      'Geliştirilmiş projeler, görevler ve özel GPT’ler';
+      'Geliştirilmiş projeler, görevler ve özel modeller';
   static const featProSora = 'Gelişmiş Sora video üretimi';
 
   static String unlockVendorsLabel(int groupCount) =>
@@ -85,6 +86,7 @@ class AppStrings {
 
   // Input hint text
   static const inputHint = 'Herhangi bir şey sor';
+  static const reasoningText = 'Mantık yürüt';
 
   // Diversified, random home placeholders
   static final List<String> _homePlaceholders = [
@@ -106,6 +108,7 @@ class AppStrings {
   static const chats = 'Sohbetler';
   static const noChatsYet = 'Henüz sohbet yok';
   static const searchChatsHint = 'Sohbetleri ara…';
+  static const modelTitle = 'Model seçimi';
   static const searchModelsHint = 'Model ara…';
   static const noResults = 'Sonuç bulunamadı';
   static const close = 'Kapat';
@@ -208,6 +211,7 @@ Map<PricingPlan, PlanMeta> _buildPlanMeta() {
         AppStrings.featFasterMessaging,
         AppStrings.featureFast,
         AppStrings.featureLongContext,
+        AppStrings.featurePriority,
       ],
     ),
     PricingPlan.business: PlanMeta(
@@ -220,7 +224,6 @@ Map<PricingPlan, PlanMeta> _buildPlanMeta() {
         AppStrings.unlockVendorsLabel(4),
         AppStrings.featFasterMessaging,
         AppStrings.featureMoreLongContext,
-        AppStrings.featurePriority,
         AppStrings.featProjects,
       ],
     ),
@@ -230,12 +233,11 @@ Map<PricingPlan, PlanMeta> _buildPlanMeta() {
       blurb: AppStrings.planProBlurb,
       cta: AppStrings.planProCta,
       features: [
-        AppStrings.featEverythingInPlus,
+        AppStrings.featEverythingInBusiness,
         AppStrings.featUnlockAllVendors,
         AppStrings.featUnlimitedMessages,
         AppStrings.featMaxMemory,
         AppStrings.featMaxResearch,
-        AppStrings.featurePriority,
       ],
     ),
   };
