@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../../core/sizer/app_sizer.dart';
 import '../../controllers/chat_controller.dart';
 import '../../enums/app.enum.dart';
 import '../../models/chat_message.dart';
@@ -243,44 +244,33 @@ class _InputBarState extends State<InputBar> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final media = MediaQuery.of(context);
-    final screenHeight = media.size.height;
-
-    double responsiveHeight(double percent, double min, double max) =>
-        (screenHeight * percent).clamp(min, max);
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final baseWidth =
-            constraints.maxWidth.isFinite
-                ? constraints.maxWidth
-                : media.size.width;
-        double responsiveWidth(
-          double percent,
-          double min,
-          double max, [
-          double? customWidth,
-        ]) => ((customWidth ?? baseWidth) * percent).clamp(min, max);
+        // Sizer-based dimensions
+        final containerPadding = 1.6.ch(context).clamp(12.0, 18.0);
+        final textFieldVPad = 0.6.ch(context).clamp(8.0, 14.0);
+        final blockSpacing = 1.0.ch(context).clamp(8.0, 14.0);
+        final modelLabelGap = 0.8.cw(context).clamp(6.0, 10.0);
+        final dividerGap = 1.4.cw(context).clamp(10.0, 18.0);
+        final thinkGap = 1.0.cw(context).clamp(8.0, 14.0);
+        final thinkPadVert = 0.8.ch(context).clamp(8.0, 12.0);
+        final thinkPadNarrow = 1.0.cw(context).clamp(8.0, 14.0);
+        final thinkPadWide = 1.6.cw(context).clamp(12.0, 18.0);
 
-        final containerPadding = responsiveHeight(0.016, 12, 18);
-        final textFieldVPad = responsiveHeight(0.006, 8, 14);
-        final blockSpacing = responsiveHeight(0.01, 8, 14);
-        final modelLabelGap = responsiveWidth(0.008, 6, 10);
-        final dividerGap = responsiveWidth(0.014, 10, 18);
-        final thinkGap = responsiveWidth(0.01, 8, 14);
-        final thinkPadVert = responsiveHeight(0.008, 8, 12);
-        final thinkPadNarrow = responsiveWidth(0.01, 8, 14);
-        final thinkPadWide = responsiveWidth(0.016, 12, 18);
+        final double chipSpacing = 0.6.cw(context).clamp(4.0, 6.0);
+        final double chipRunSpacing = 0.6.ch(context).clamp(4.0, 6.0);
+        final double chipBottomPad = 0.8.ch(context).clamp(6.0, 8.0);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (_attachments.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: EdgeInsets.only(bottom: chipBottomPad),
                 child: Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
+                  spacing: chipSpacing,
+                  runSpacing: chipRunSpacing,
                   children:
                       _attachments.asMap().entries.map((e) {
                         final a = e.value;
@@ -410,21 +400,29 @@ class _InputBarState extends State<InputBar> {
                         LayoutBuilder(
                           builder: (ctx, cons) {
                             final bool isNarrow = cons.maxWidth < 700;
-                            final double btnMax =
+
+                            // Calculate safe width to prevent overflow on narrow screens
+                            final double fixedItemsWidth = 200.0;
+                            final double safeWidth = (cons.maxWidth -
+                                    fixedItemsWidth)
+                                .clamp(0.0, 320.0);
+
+                            final double desired =
                                 isNarrow
-                                    ? (cons.maxWidth * 0.50).clamp(140.0, 240.0)
+                                    ? (cons.maxWidth * 0.50).clamp(100.0, 240.0)
                                     : 320.0;
-                            final double btnPadH = responsiveWidth(
-                              isNarrow ? 0.01 : 0.016,
-                              8,
-                              12,
-                              cons.maxWidth,
-                            );
-                            final double btnPadV = responsiveHeight(
-                              0.006,
-                              4,
-                              8,
-                            );
+
+                            final double btnMax =
+                                desired > safeWidth ? safeWidth : desired;
+
+                            final double btnPadH =
+                                isNarrow
+                                    ? 1.0.cw(context).clamp(8.0, 10.0)
+                                    : 1.6.cw(context).clamp(10.0, 12.0);
+
+                            final double btnPadV = 0.6
+                                .ch(context)
+                                .clamp(4.0, 8.0);
 
                             return Row(
                               children: [
