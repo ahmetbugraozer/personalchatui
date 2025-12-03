@@ -71,7 +71,6 @@ class AppStrings {
   static const featMaxResearch = 'Maksimum derin araştırma ve ajan modu';
   static const featProProjects =
       'Geliştirilmiş projeler, görevler ve özel modeller';
-  static const featProSora = 'Gelişmiş Sora video üretimi';
 
   static String unlockVendorsLabel(int groupCount) =>
       'Seçtiğiniz $groupCount grubun tüm modelleri dahil';
@@ -330,6 +329,19 @@ class AppModels {
       ],
       logoUrl: 'assets/grok-4.svg',
     ),
+    'xai/grok-4.1': ModelMeta(
+      id: 'xai/grok-4.1',
+      vendor: ModelVendor.xai,
+      name: 'Grok 4.1',
+      subtitle: 'Latest flagship model',
+      caps: const [
+        ModelCapability.reasoning,
+        ModelCapability.fileInputs,
+        ModelCapability.audioInputs,
+        ModelCapability.textInputs,
+      ],
+      logoUrl: 'assets/grok-4-1.svg',
+    ),
     // Anthropic
     'anthropic/claude-sonnet-4.5': ModelMeta(
       id: 'anthropic/claude-sonnet-4.5',
@@ -396,6 +408,19 @@ class AppModels {
       ],
       logoUrl: 'assets/claude-opus-4-1.svg',
     ),
+    'anthropic/claude-opus-4.5': ModelMeta(
+      id: 'anthropic/claude-opus-4.5',
+      vendor: ModelVendor.anthropic,
+      name: 'Claude Opus 4.5',
+      subtitle: 'Most advanced hybrid-reasoning model',
+      caps: const [
+        ModelCapability.reasoning,
+        ModelCapability.fileInputs,
+        ModelCapability.audioInputs,
+        ModelCapability.textInputs,
+      ],
+      logoUrl: 'assets/claude-opus-4-5.svg',
+    ),
     // DeepSeek
     'deepseek/r1': ModelMeta(
       id: 'deepseek/r1',
@@ -457,6 +482,18 @@ class AppModels {
       ],
       logoUrl: 'assets/gpt-5.svg',
     ),
+    'openai/gpt-5.1': ModelMeta(
+      id: 'openai/gpt-5.1',
+      vendor: ModelVendor.openai,
+      name: 'GPT-5.1',
+      subtitle: 'Latest flagship model',
+      caps: const [
+        ModelCapability.fileInputs,
+        ModelCapability.audioInputs,
+        ModelCapability.textInputs,
+      ],
+      logoUrl: 'assets/gpt-5-1.svg',
+    ),
     'openai/gpt-4o': ModelMeta(
       id: 'openai/gpt-4o',
       vendor: ModelVendor.openai,
@@ -480,6 +517,14 @@ class AppModels {
         ModelCapability.textInputs,
       ],
       logoUrl: 'assets/gpt-4-1.svg',
+    ),
+    'openai/gpt-realtime': ModelMeta(
+      id: 'openai/gpt-realtime',
+      vendor: ModelVendor.openai,
+      name: 'GPT Realtime',
+      subtitle: 'Real-time conversational model',
+      caps: const [ModelCapability.audioInputs, ModelCapability.textInputs],
+      logoUrl: 'assets/gpt-realtime.svg',
     ),
     'openai/o3': ModelMeta(
       id: 'openai/o3',

@@ -175,7 +175,6 @@ class _ChatAreaState extends State<ChatArea> {
                                 textAlign: TextAlign.center,
                                 style: theme.textTheme.titleLarge?.copyWith(
                                   fontSize: 36,
-                                  fontWeight: FontWeight.w600,
                                   color: theme.textTheme.bodyMedium?.color
                                       ?.withValues(alpha: 0.7),
                                 ),

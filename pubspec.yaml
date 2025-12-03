@@ -30,8 +30,14 @@ flutter:
 
   uses-material-design: true
   
+  fonts:
+    - family: GoogleSansFlex
+      fonts:
+        - asset: assets/fonts/GoogleSansFlex-VariableFont.ttf
+  
   assets:
     - assets/
+    - assets/fonts/
     - assets/claude-haiku-4-5.svg
     - assets/claude-opus-4-1.svg
     - assets/claude-opus-4.svg
@@ -40,13 +46,10 @@ flutter:
     - assets/deepseek-r1.svg
     - assets/gemini-2-5-flash.svg
     - assets/gemini-2-5-pro.svg
-    - assets/gemini-3-pro.svg
     - assets/gpt-4-1.svg
     - assets/gpt-4o.svg
     - assets/gpt-5.svg
-    - assets/grok-3.svg
-    - assets/grok-4.svg
-    - assets/llama-4-maverick.svg
     - assets/o3.svg
     - assets/o4-mini.svg
-    - assets/qwen3.svg
+    - assets/grok-3.svg
+    - assets/grok-4.svg

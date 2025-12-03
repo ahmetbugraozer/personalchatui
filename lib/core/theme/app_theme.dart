@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // ChatGPT-like palette tokens
@@ -17,6 +16,83 @@ class AppTheme {
   // Accent: ChatGPT uses a purple accent for actions like Plus
   static const _accent = Color(0xFF7C4DFF);
 
+  // GoogleSansFlex için text theme oluşturma
+  static TextTheme _googleSansFlexTextTheme(TextTheme base, Color color) {
+    return base.copyWith(
+      displayLarge: base.displayLarge?.copyWith(
+        fontFamily: 'GoogleSansFlex',
+        color: color,
+      ),
+      displayMedium: base.displayMedium?.copyWith(
+        fontFamily: 'GoogleSansFlex',
+        color: color,
+      ),
+      displaySmall: base.displaySmall?.copyWith(
+        fontFamily: 'GoogleSansFlex',
+        color: color,
+      ),
+      headlineLarge: base.headlineLarge?.copyWith(
+        fontFamily: 'GoogleSansFlex',
+        color: color,
+      ),
+      headlineMedium: base.headlineMedium?.copyWith(
+        fontFamily: 'GoogleSansFlex',
+        color: color,
+      ),
+      headlineSmall: base.headlineSmall?.copyWith(
+        fontFamily: 'GoogleSansFlex',
+        color: color,
+      ),
+      titleLarge: base.titleLarge?.copyWith(
+        fontFamily: 'GoogleSansFlex',
+        color: color,
+      ),
+      titleMedium: base.titleMedium?.copyWith(
+        fontFamily: 'GoogleSansFlex',
+        color: color,
+      ),
+      titleSmall: base.titleSmall?.copyWith(
+        fontFamily: 'GoogleSansFlex',
+        color: color,
+      ),
+      bodyLarge: base.bodyLarge?.copyWith(
+        fontFamily: 'GoogleSansFlex',
+        color: color,
+      ),
+      bodyMedium: base.bodyMedium?.copyWith(
+        fontFamily: 'GoogleSansFlex',
+        color: color,
+      ),
+      bodySmall: base.bodySmall?.copyWith(
+        fontFamily: 'GoogleSansFlex',
+        color: color,
+      ),
+      labelLarge: base.labelLarge?.copyWith(
+        fontFamily: 'GoogleSansFlex',
+        color: color,
+      ),
+      labelMedium: base.labelMedium?.copyWith(
+        fontFamily: 'GoogleSansFlex',
+        color: color,
+      ),
+      labelSmall: base.labelSmall?.copyWith(
+        fontFamily: 'GoogleSansFlex',
+        color: color,
+      ),
+    );
+  }
+
+  // Alternatif: Tüm text theme'yi tek seferde uygulamak için
+  static ThemeData _applyGoogleSansFlex(ThemeData theme, Color textColor) {
+    return theme.copyWith(
+      textTheme: theme.textTheme.apply(
+        fontFamily: 'GoogleSansFlex',
+        bodyColor: textColor,
+        displayColor: textColor,
+      ),
+    );
+  }
+
   static ThemeData get light {
     final base = ThemeData(
       brightness: Brightness.light,
@@ -27,14 +103,26 @@ class AppTheme {
       ),
       scaffoldBackgroundColor: _lightBg,
       useMaterial3: true,
+      fontFamily: 'GoogleSansFlex', // Burada global font family tanımlıyoruz
     );
 
-    return base.copyWith(
-      textTheme: GoogleFonts.montserratTextTheme(base.textTheme),
+    final theme = base.copyWith(
+      // 1. Yöntem: Global font family kullanımı
+      // textTheme: base.textTheme,
+
+      // 2. Yöntem: Detaylı text theme özelleştirmesi
+      textTheme: _googleSansFlexTextTheme(base.textTheme, Colors.black87),
+
       appBarTheme: AppBarTheme(
         elevation: 0,
         backgroundColor: _lightBg,
         foregroundColor: Colors.black87,
+        titleTextStyle: TextStyle(
+          fontFamily: 'GoogleSansFlex',
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: Colors.black87,
+        ),
       ),
       cardColor: _lightSurface,
       dividerColor: _lightDivider,
@@ -51,7 +139,10 @@ class AppTheme {
       chipTheme: base.chipTheme.copyWith(
         backgroundColor: _lightSurface,
         side: BorderSide(color: _lightDivider),
-        labelStyle: base.textTheme.bodyMedium,
+        labelStyle: TextStyle(
+          fontFamily: 'GoogleSansFlex',
+          color: Colors.black87.withValues(alpha: 0.92),
+        ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -64,9 +155,14 @@ class AppTheme {
         border: _roundedBorder(_lightDivider),
         enabledBorder: _roundedBorder(_lightDivider),
         focusedBorder: _roundedBorder(_accent),
-        hintStyle: const TextStyle(color: Color(0x73000000)), // black45
+        hintStyle: const TextStyle(
+          fontFamily: 'GoogleSansFlex',
+          color: Color(0x73000000),
+        ),
       ),
     );
+
+    return _applyGoogleSansFlex(theme, Colors.black87.withValues(alpha: 0.92));
   }
 
   static ThemeData get dark {
@@ -79,17 +175,29 @@ class AppTheme {
       ),
       scaffoldBackgroundColor: _darkBg,
       useMaterial3: true,
+      fontFamily: 'GoogleSansFlex', // Burada global font family tanımlıyoruz
     );
 
-    return base.copyWith(
-      textTheme: GoogleFonts.montserratTextTheme(base.textTheme).apply(
-        bodyColor: Colors.white.withValues(alpha: 0.92),
-        displayColor: Colors.white.withValues(alpha: 0.92),
+    final theme = base.copyWith(
+      // 1. Yöntem: Global font family kullanımı
+      // textTheme: base.textTheme,
+
+      // 2. Yöntem: Detaylı text theme özelleştirmesi
+      textTheme: _googleSansFlexTextTheme(
+        base.textTheme,
+        Colors.white.withValues(alpha: 0.92),
       ),
+
       appBarTheme: AppBarTheme(
         elevation: 0,
         backgroundColor: _darkBg,
         foregroundColor: Colors.white,
+        titleTextStyle: TextStyle(
+          fontFamily: 'GoogleSansFlex',
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        ),
       ),
       cardColor: _darkCard,
       dividerColor: _darkDivider,
@@ -106,7 +214,8 @@ class AppTheme {
       chipTheme: base.chipTheme.copyWith(
         backgroundColor: _darkCard,
         side: BorderSide(color: _darkDivider),
-        labelStyle: base.textTheme.bodyMedium?.copyWith(
+        labelStyle: TextStyle(
+          fontFamily: 'GoogleSansFlex',
           color: Colors.white.withValues(alpha: 0.92),
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -121,13 +230,36 @@ class AppTheme {
         border: _roundedBorder(_borderDark),
         enabledBorder: _roundedBorder(_borderDark),
         focusedBorder: _roundedBorder(_accent),
-        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+        hintStyle: TextStyle(
+          fontFamily: 'GoogleSansFlex',
+          color: Colors.white.withValues(alpha: 0.6),
+        ),
       ),
     );
+
+    return _applyGoogleSansFlex(theme, Colors.white.withValues(alpha: 0.92));
   }
 
   static OutlineInputBorder _roundedBorder(Color color) => OutlineInputBorder(
     borderRadius: BorderRadius.circular(14),
     borderSide: BorderSide(color: color, width: 1),
   );
+
+  // İsteğe bağlı: Özel TextStyle oluşturmak için yardımcı method
+  static TextStyle googleSansFlexTextStyle({
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+    double? letterSpacing,
+    double? height,
+  }) {
+    return TextStyle(
+      fontFamily: 'GoogleSansFlex',
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      letterSpacing: letterSpacing,
+      height: height,
+    );
+  }
 }

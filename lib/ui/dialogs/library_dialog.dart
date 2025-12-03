@@ -61,7 +61,7 @@ class _LibraryDialogState extends State<LibraryDialog> {
                         child: Center(
                           child: Text(
                             AppStrings.noImages,
-                            style: theme.textTheme.bodyMedium,
+                            style: theme.textTheme.displaySmall,
                           ),
                         ),
                       ),

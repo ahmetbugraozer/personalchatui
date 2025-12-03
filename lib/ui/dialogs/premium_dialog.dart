@@ -129,7 +129,6 @@ class _PlanCard extends StatelessWidget {
                   plan.title,
                   style: theme.textTheme.titleMedium?.copyWith(
                     color: titleColor,
-                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -158,12 +157,7 @@ class _PlanCard extends StatelessWidget {
             ],
           ),
           SizedBox(height: 0.6.h.clamp(6, 12)),
-          Text(
-            plan.price,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          Text(plan.price, style: theme.textTheme.headlineSmall?.copyWith()),
           SizedBox(height: 0.6.h.clamp(6, 12)),
           Text(
             plan.blurb,
