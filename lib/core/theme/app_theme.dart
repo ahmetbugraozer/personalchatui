@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // ChatGPT-like palette tokens
   // Light
   static const _lightBg = Color(0xFFF7F7F8); // page
   static const _lightSurface = Colors.white; // surfaces/cards/inputs
@@ -13,7 +12,6 @@ class AppTheme {
   static const _darkDivider = Color(0x14FFFFFF); // white with low alpha
   static const _borderDark = Color(0xFF2F3239); // input borders
 
-  // Accent: ChatGPT uses a purple accent for actions like Plus
   static const _accent = Color(0xFF7C4DFF);
 
   // GoogleSansFlex için text theme oluşturma
@@ -175,14 +173,10 @@ class AppTheme {
       ),
       scaffoldBackgroundColor: _darkBg,
       useMaterial3: true,
-      fontFamily: 'GoogleSansFlex', // Burada global font family tanımlıyoruz
+      fontFamily: 'GoogleSansFlex',
     );
 
     final theme = base.copyWith(
-      // 1. Yöntem: Global font family kullanımı
-      // textTheme: base.textTheme,
-
-      // 2. Yöntem: Detaylı text theme özelleştirmesi
       textTheme: _googleSansFlexTextTheme(
         base.textTheme,
         Colors.white.withValues(alpha: 0.92),
@@ -244,22 +238,4 @@ class AppTheme {
     borderRadius: BorderRadius.circular(14),
     borderSide: BorderSide(color: color, width: 1),
   );
-
-  // İsteğe bağlı: Özel TextStyle oluşturmak için yardımcı method
-  static TextStyle googleSansFlexTextStyle({
-    double? fontSize,
-    FontWeight? fontWeight,
-    Color? color,
-    double? letterSpacing,
-    double? height,
-  }) {
-    return TextStyle(
-      fontFamily: 'GoogleSansFlex',
-      fontSize: fontSize,
-      fontWeight: fontWeight,
-      color: color,
-      letterSpacing: letterSpacing,
-      height: height,
-    );
-  }
 }

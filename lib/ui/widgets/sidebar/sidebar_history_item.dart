@@ -82,7 +82,7 @@ class _SidebarHistoryItemState extends State<SidebarHistoryItem> {
     );
     final menu = PopupMenuButton<_HistoryAction>(
       icon: const Icon(Icons.more_horiz_rounded, size: 20),
-      tooltip: AppStrings.deleteChat,
+      tooltip: AppStrings.chatSettings,
       onSelected: (action) async {
         switch (action) {
           case _HistoryAction.rename:

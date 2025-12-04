@@ -21,9 +21,7 @@ class HomePage extends StatelessWidget {
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 700;
         // Auto-collapse on very narrow screens
-        if (isNarrow && sidebar.isOpen.value) {
-          sidebar.set(false);
-        }
+        sidebar.autoCollapseIfNarrow(constraints.maxWidth);
 
         // Keep this in sync with PreferredSize height below
         final double appBarHeight = (7.2.h).clamp(56.0, 72.0);

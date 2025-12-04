@@ -2,16 +2,20 @@ import 'package:flutter/material.dart';
 
 class SidebarEntry extends StatelessWidget {
   final IconData icon;
+  final IconData? selectedIcon; // New: icon to show when selected
   final String label;
   final bool open;
+  final bool isSelected; // New: selection state
   final VoidCallback? onTap;
   final Widget? trailing;
 
   const SidebarEntry({
     super.key,
     required this.icon,
+    this.selectedIcon,
     required this.label,
     required this.open,
+    this.isSelected = false, // default false
     this.onTap,
     this.trailing,
   });
@@ -19,6 +23,8 @@ class SidebarEntry extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final displayIcon = isSelected ? (selectedIcon ?? icon) : icon;
+
     return Tooltip(
       message: label,
       child: InkWell(
@@ -32,20 +38,12 @@ class SidebarEntry extends StatelessWidget {
                 width: 44,
                 height: 40,
                 alignment: Alignment.center,
-                child: Icon(icon, size: 22),
+                child: Icon(displayIcon, size: 22),
               ),
               if (open)
                 Expanded(
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: theme.dividerColor,
-                          width: 0.4,
-                        ),
-                      ),
-                    ),
                     child: Row(
                       children: [
                         Expanded(
