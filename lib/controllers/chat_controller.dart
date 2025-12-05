@@ -10,6 +10,14 @@ class ChatSession {
   final RxString title = ''.obs;
   final RxList<ChatMessage> messages = <ChatMessage>[].obs;
 
+  // Store all message branches: key = parentId (or "root" for first messages), value = list of branch lists
+  // Each branch is a list of messages starting from that point
+  final RxMap<String, List<List<ChatMessage>>> branches =
+      <String, List<List<ChatMessage>>>{}.obs;
+
+  // Current branch index per fork point
+  final RxMap<String, int> currentBranchIndex = <String, int>{}.obs;
+
   // Timestamps
   final DateTime createdAt;
   DateTime updatedAt;
@@ -252,7 +260,7 @@ class ChatController extends GetxController {
   Future<void> sendMessage(
     String text, {
     List<Attachment> attachments = const [],
-    bool thinking = false, // New
+    bool thinking = false,
   }) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
@@ -324,11 +332,13 @@ class ChatController extends GetxController {
           onError: (_) {
             // Commit whatever we have and stop
             _commitStreamToMessage(session, idx);
+            _syncAllActiveBranches(session);
             isStreaming.value = false;
           },
           onDone: () {
             // Final commit in a single list update
             _commitStreamToMessage(session, idx);
+            _syncAllActiveBranches(session);
             isStreaming.value = false;
           },
           cancelOnError: true,
@@ -450,5 +460,417 @@ class ChatController extends GetxController {
     // Newest first
     out.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return out;
+  }
+
+  // Get branches at a specific message index (returns null if no branches)
+  List<List<ChatMessage>>? getBranchesAt(int messageIndex) {
+    final session = _sessions[_current.value];
+    if (messageIndex < 0 || messageIndex >= session.messages.length) {
+      return null;
+    }
+
+    // parentId is the id of the message BEFORE the fork point
+    final parentId =
+        messageIndex > 0 ? session.messages[messageIndex - 1].id : 'root';
+
+    return session.branches[parentId];
+  }
+
+  // Get current branch index at a fork point
+  int getCurrentBranchAt(int messageIndex) {
+    final session = _sessions[_current.value];
+    final parentId =
+        messageIndex > 0 ? session.messages[messageIndex - 1].id : 'root';
+    return session.currentBranchIndex[parentId] ?? 0;
+  }
+
+  // Get total branches at a fork point
+  int getTotalBranchesAt(int messageIndex) {
+    final session = _sessions[_current.value];
+    // Force reactivity
+    final _ = session.currentBranchIndex.length;
+
+    final parentId =
+        messageIndex > 0 ? session.messages[messageIndex - 1].id : 'root';
+    final branches = session.branches[parentId];
+    return branches?.length ?? 1;
+  }
+
+  // Switch to a different branch at a fork point
+  void switchBranch(int messageIndex, int branchIndex) {
+    final session = _sessions[_current.value];
+    if (messageIndex < 0 || messageIndex >= session.messages.length) return;
+
+    final parentId =
+        messageIndex > 0 ? session.messages[messageIndex - 1].id : 'root';
+    final branches = session.branches[parentId];
+
+    if (branches == null || branchIndex < 0 || branchIndex >= branches.length) {
+      return;
+    }
+
+    // Before switching, save the current state of this branch
+    // Save ALL messages from this fork point to the end
+    // The nested branches are stored separately and will be restored when needed
+    final currentBranchIndex = session.currentBranchIndex[parentId] ?? 0;
+    if (currentBranchIndex < branches.length) {
+      branches[currentBranchIndex] =
+          session.messages
+              .sublist(messageIndex)
+              .map((m) => m.copyWith())
+              .toList();
+    }
+
+    // Update current branch index
+    session.currentBranchIndex[parentId] = branchIndex;
+
+    // Keep messages before the fork point (common ancestors)
+    final messagesToKeep = session.messages.sublist(0, messageIndex);
+
+    // Load the selected branch
+    final selectedBranch = branches[branchIndex];
+
+    // Clear and rebuild
+    session.messages.clear();
+    session.messages.addAll(messagesToKeep);
+    session.messages.addAll(selectedBranch.map((m) => m.copyWith()).toList());
+
+    // Restore nested branch indices for messages that are now in view
+    _restoreNestedBranchIndices(session);
+
+    session.currentBranchIndex.refresh();
+    session.branches.refresh();
+    session.messages.refresh();
+  }
+
+  // Restore branch indices for nested branches whose parent is now in the message list
+  void _restoreNestedBranchIndices(ChatSession session) {
+    final messageIds = session.messages.map((m) => m.id).toSet();
+    messageIds.add('root');
+
+    // For each branch, if its parent is in current messages and we don't have
+    // a currentBranchIndex for it, set it to 0 (the original branch)
+    for (final parentId in session.branches.keys) {
+      if (messageIds.contains(parentId)) {
+        // Parent is visible, ensure we have an index (default to 0 if missing)
+        session.currentBranchIndex.putIfAbsent(parentId, () => 0);
+      }
+    }
+  }
+
+  // Remove branch indices for branches whose parent is not in current message list
+  void _cleanupNestedBranchIndices(
+    ChatSession session,
+    String switchedParentId,
+  ) {
+    final messageIds = session.messages.map((m) => m.id).toSet();
+    messageIds.add('root'); // root is always valid
+
+    final keysToRemove = <String>[];
+    for (final parentId in session.currentBranchIndex.keys) {
+      // Don't remove the one we just switched
+      if (parentId == switchedParentId) continue;
+      // If the parent message is not in current messages, remove this index
+      if (!messageIds.contains(parentId)) {
+        keysToRemove.add(parentId);
+      }
+    }
+    for (final key in keysToRemove) {
+      session.currentBranchIndex.remove(key);
+    }
+  }
+
+  // Edit and resend a user message, creating a new branch
+  Future<void> editAndResend(int messageIndex, String newContent) async {
+    final trimmed = newContent.trim();
+    if (trimmed.isEmpty) return;
+    if (isStreaming.value) return;
+
+    final session = _sessions[_current.value];
+    if (messageIndex < 0 || messageIndex >= session.messages.length) return;
+
+    final originalMsg = session.messages[messageIndex];
+    if (originalMsg.role != ChatRole.user) return;
+
+    final parentId =
+        messageIndex > 0 ? session.messages[messageIndex - 1].id : 'root';
+
+    // Get or create branches list for this fork point
+    if (!session.branches.containsKey(parentId)) {
+      // First time branching: save the original branch (ALL messages from messageIndex)
+      final originalBranch =
+          session.messages
+              .sublist(messageIndex)
+              .map((m) => m.copyWith())
+              .toList();
+      session.branches[parentId] = [originalBranch];
+      session.currentBranchIndex[parentId] = 0;
+    } else {
+      // Save current branch state before creating new one (ALL remaining messages)
+      final currentBranchIndex = session.currentBranchIndex[parentId] ?? 0;
+      final branches = session.branches[parentId]!;
+      if (currentBranchIndex < branches.length) {
+        branches[currentBranchIndex] =
+            session.messages
+                .sublist(messageIndex)
+                .map((m) => m.copyWith())
+                .toList();
+      }
+    }
+
+    // Messages to keep: everything BEFORE messageIndex (common ancestors)
+    final messagesToKeep = session.messages.sublist(0, messageIndex);
+
+    // Create new user message for the new branch
+    final newBranchIndex = session.branches[parentId]!.length;
+    final editedUserMsg = ChatMessage.user(
+      content: trimmed,
+      attachments: originalMsg.attachments,
+      parentId: parentId,
+      branchIndex: newBranchIndex,
+      totalBranches: newBranchIndex + 1,
+    );
+
+    // Create assistant placeholder
+    final assistantMsg = ChatMessage.assistant(
+      content: '',
+      parentId: editedUserMsg.id,
+      branchIndex: newBranchIndex,
+      totalBranches: newBranchIndex + 1,
+    );
+
+    // New branch contains only the edited user message and assistant placeholder
+    final newBranch = [editedUserMsg, assistantMsg];
+    session.branches[parentId]!.add(newBranch);
+
+    // Update current branch index to the new branch
+    session.currentBranchIndex[parentId] = newBranchIndex;
+
+    // Rebuild messages list: ancestors + new branch
+    session.messages.clear();
+    session.messages.addAll(messagesToKeep);
+    session.messages.addAll(newBranch);
+
+    // Clean up nested branch indices that are no longer valid
+    _cleanupNestedBranchIndices(session, parentId);
+
+    session.branches.refresh();
+    session.currentBranchIndex.refresh();
+
+    session.updatedAt = DateTime.now();
+    _moveCurrentToLast();
+
+    // Ensure model history is updated
+    final usedModelId = session.modelId.value;
+    if (session.modelHistory.isEmpty ||
+        session.modelHistory.last != usedModelId) {
+      session.modelHistory.add(usedModelId);
+    }
+
+    isStreaming.value = true;
+    final idx = session.messages.length - 1;
+
+    streamText.value = '';
+    _streamSessionId = session.id;
+    _streamMsgIndex = idx;
+
+    _sub = _service
+        .streamCompletion(prompt: trimmed, attachments: originalMsg.attachments)
+        .listen(
+          (token) {
+            streamText.value = streamText.value + token;
+          },
+          onError: (_) {
+            _commitStreamToMessage(session, idx);
+            _syncCurrentBranchAfterStream(session, parentId, messageIndex);
+            isStreaming.value = false;
+          },
+          onDone: () {
+            _commitStreamToMessage(session, idx);
+            _syncCurrentBranchAfterStream(session, parentId, messageIndex);
+            isStreaming.value = false;
+          },
+          cancelOnError: true,
+        );
+  }
+
+  // Sync the current branch after streaming (save all messages from fork point)
+  void _syncCurrentBranchAfterStream(
+    ChatSession session,
+    String parentId,
+    int forkIndex,
+  ) {
+    final branchIndex = session.currentBranchIndex[parentId] ?? 0;
+    final branches = session.branches[parentId];
+    if (branches == null || branchIndex >= branches.length) return;
+
+    if (forkIndex < session.messages.length) {
+      branches[branchIndex] =
+          session.messages.sublist(forkIndex).map((m) => m.copyWith()).toList();
+      session.branches.refresh();
+    }
+  }
+
+  // Sync all active branches with current messages
+  // Only update the deepest (most recent) branch to avoid duplicates
+  void _syncAllActiveBranches(ChatSession session) {
+    if (session.currentBranchIndex.isEmpty) return;
+
+    // Find the deepest fork point in current messages
+    String? deepestParentId;
+    int deepestForkIndex = -1;
+
+    for (final entry in session.currentBranchIndex.entries) {
+      final parentId = entry.key;
+      final branches = session.branches[parentId];
+      if (branches == null) continue;
+
+      int forkIndex = 0;
+      if (parentId != 'root') {
+        final parentMsgIndex = session.messages.indexWhere(
+          (m) => m.id == parentId,
+        );
+        if (parentMsgIndex == -1) continue; // Parent not in current view
+        forkIndex = parentMsgIndex + 1;
+      }
+
+      if (forkIndex > deepestForkIndex) {
+        deepestForkIndex = forkIndex;
+        deepestParentId = parentId;
+      }
+    }
+
+    // Only update the deepest branch (save all remaining messages)
+    if (deepestParentId != null &&
+        deepestForkIndex >= 0 &&
+        deepestForkIndex < session.messages.length) {
+      final branchIndex = session.currentBranchIndex[deepestParentId] ?? 0;
+      final branches = session.branches[deepestParentId];
+      if (branches != null && branchIndex < branches.length) {
+        branches[branchIndex] =
+            session.messages
+                .sublist(deepestForkIndex)
+                .map((m) => m.copyWith())
+                .toList();
+        session.branches.refresh();
+      }
+    }
+  }
+
+  // Regenerate assistant response for a user message, creating a new branch
+  Future<void> regenerateResponse(int assistantMessageIndex) async {
+    if (isStreaming.value) return;
+
+    final session = _sessions[_current.value];
+    if (assistantMessageIndex < 1 ||
+        assistantMessageIndex >= session.messages.length) {
+      return;
+    }
+
+    final assistantMsg = session.messages[assistantMessageIndex];
+    if (assistantMsg.role != ChatRole.assistant) return;
+
+    // Find the user message before this assistant message
+    final userMessageIndex = assistantMessageIndex - 1;
+    final userMsg = session.messages[userMessageIndex];
+    if (userMsg.role != ChatRole.user) return;
+
+    // The fork point is at the user message position (same as editAndResend)
+    final parentId =
+        userMessageIndex > 0
+            ? session.messages[userMessageIndex - 1].id
+            : 'root';
+
+    // Get or create branches list for this fork point
+    if (!session.branches.containsKey(parentId)) {
+      // First time branching: save the original branch (ALL messages from userMessageIndex)
+      final originalBranch =
+          session.messages
+              .sublist(userMessageIndex)
+              .map((m) => m.copyWith())
+              .toList();
+      session.branches[parentId] = [originalBranch];
+      session.currentBranchIndex[parentId] = 0;
+    } else {
+      // Save current branch state before creating new one
+      final currentBranchIndex = session.currentBranchIndex[parentId] ?? 0;
+      final branches = session.branches[parentId]!;
+      if (currentBranchIndex < branches.length) {
+        branches[currentBranchIndex] =
+            session.messages
+                .sublist(userMessageIndex)
+                .map((m) => m.copyWith())
+                .toList();
+      }
+    }
+
+    // Messages to keep: everything BEFORE userMessageIndex (common ancestors)
+    final messagesToKeep = session.messages.sublist(0, userMessageIndex);
+
+    // Create new branch with the same user message but new assistant response
+    final newBranchIndex = session.branches[parentId]!.length;
+
+    // Copy user message with updated branch info
+    final newUserMsg = userMsg.copyWith(
+      branchIndex: newBranchIndex,
+      totalBranches: newBranchIndex + 1,
+    );
+
+    // Create new assistant placeholder
+    final newAssistantMsg = ChatMessage.assistant(
+      content: '',
+      parentId: newUserMsg.id,
+      branchIndex: newBranchIndex,
+      totalBranches: newBranchIndex + 1,
+    );
+
+    // New branch contains the user message and new assistant placeholder
+    final newBranch = [newUserMsg, newAssistantMsg];
+    session.branches[parentId]!.add(newBranch);
+
+    // Update current branch index to the new branch
+    session.currentBranchIndex[parentId] = newBranchIndex;
+
+    // Rebuild messages list: ancestors + new branch
+    session.messages.clear();
+    session.messages.addAll(messagesToKeep);
+    session.messages.addAll(newBranch);
+
+    // Clean up nested branch indices that are no longer valid
+    _cleanupNestedBranchIndices(session, parentId);
+
+    session.branches.refresh();
+    session.currentBranchIndex.refresh();
+
+    session.updatedAt = DateTime.now();
+
+    isStreaming.value = true;
+    final idx = session.messages.length - 1;
+
+    streamText.value = '';
+    _streamSessionId = session.id;
+    _streamMsgIndex = idx;
+
+    _sub = _service
+        .streamCompletion(
+          prompt: userMsg.content,
+          attachments: userMsg.attachments,
+        )
+        .listen(
+          (token) {
+            streamText.value = streamText.value + token;
+          },
+          onError: (_) {
+            _commitStreamToMessage(session, idx);
+            _syncCurrentBranchAfterStream(session, parentId, userMessageIndex);
+            isStreaming.value = false;
+          },
+          onDone: () {
+            _commitStreamToMessage(session, idx);
+            _syncCurrentBranchAfterStream(session, parentId, userMessageIndex);
+            isStreaming.value = false;
+          },
+          cancelOnError: true,
+        );
   }
 }
