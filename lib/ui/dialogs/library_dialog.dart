@@ -7,6 +7,7 @@ import 'package:universal_html/html.dart' as html;
 import '../../controllers/chat_controller.dart';
 import '../../enums/app.enum.dart';
 import '../widgets/gallery_grid.dart';
+import 'elements/dialog_scaffold.dart';
 
 class LibraryDialog extends StatefulWidget {
   const LibraryDialog({super.key});
@@ -16,100 +17,83 @@ class LibraryDialog extends StatefulWidget {
 }
 
 class _LibraryDialogState extends State<LibraryDialog> {
-  int? _selected; // index into gallery list
+  int? _selected;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final chat = Get.find<ChatController>();
 
-    return Dialog(
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: 4.w.clamp(12, 32),
-        vertical: 3.h.clamp(16, 36),
-      ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isNarrow = constraints.maxWidth < 900;
-          final maxWidth =
-              isNarrow ? constraints.maxWidth : 90.w.clamp(720, 1200) as double;
-          final maxHeight =
-              isNarrow
-                  ? 80.h.clamp(420, 860) as double
-                  : 74.h.clamp(520, 820) as double;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 900;
+        final maxWidth =
+            isNarrow ? constraints.maxWidth : 90.w.clamp(720, 1200) as double;
+        final maxHeight =
+            isNarrow
+                ? 80.h.clamp(420, 860) as double
+                : 74.h.clamp(520, 820) as double;
 
-          return ConstrainedBox(
-            constraints: BoxConstraints(
+        return Obx(() {
+          final items = chat.galleryImages();
+
+          if (items.isEmpty) {
+            return DialogScaffold(
+              title: AppStrings.images,
               maxWidth: maxWidth,
               maxHeight: maxHeight,
-            ),
-            child: Padding(
-              padding: EdgeInsets.all(2.h.clamp(12, 24)),
-              child: Obx(() {
-                final items = chat.galleryImages();
-                if (items.isEmpty) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        AppStrings.images,
-                        style: theme.textTheme.titleLarge,
-                      ),
-                      SizedBox(height: 1.6.h.clamp(10, 22)),
-                      Expanded(
-                        child: Center(
-                          child: Text(
-                            AppStrings.noImages,
-                            style: theme.textTheme.displaySmall,
-                          ),
-                        ),
-                      ),
-                      const _BottomCloseButton(), // replaced inline Align
-                    ],
-                  );
-                }
+              content: Center(
+                child: Text(
+                  AppStrings.noImages,
+                  style: theme.textTheme.titleLarge,
+                ),
+              ),
+            );
+          }
 
-                // Keep grid first; only clamp when photo is active
-                final bool inPhoto = _selected != null;
-                final int effectiveIndex =
-                    inPhoto ? _selected!.clamp(0, items.length - 1) : 0;
+          final bool inPhoto = _selected != null;
+          final int effectiveIndex =
+              inPhoto ? _selected!.clamp(0, items.length - 1) : 0;
 
-                return AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 180),
-                  child:
-                      !inPhoto
-                          ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // moved from _GalleryGrid
-                              Text(
-                                AppStrings.images,
-                                style: theme.textTheme.titleLarge,
-                              ),
-                              SizedBox(height: 1.6.h.clamp(10, 22)),
-                              Expanded(
-                                child: GalleryGrid(
-                                  items: items,
-                                  onTap: (i) => setState(() => _selected = i),
-                                ),
-                              ),
-                              const _BottomCloseButton(),
-                            ],
-                          )
-                          : _PhotoView(
-                            key: const ValueKey('photo'),
-                            items: items,
-                            index: effectiveIndex,
-                            onSelect: (i) => setState(() => _selected = i),
-                            onClose: () => setState(() => _selected = null),
-                          ),
-                );
-              }),
+          if (inPhoto) {
+            // Photo view uses custom layout
+            return Dialog(
+              insetPadding: EdgeInsets.symmetric(
+                horizontal: 4.w.clamp(12, 32),
+                vertical: 3.h.clamp(16, 36),
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: maxWidth,
+                  maxHeight: maxHeight,
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(2.h.clamp(12, 24)),
+                  child: _PhotoView(
+                    items: items,
+                    index: effectiveIndex,
+                    onSelect: (i) => setState(() => _selected = i),
+                    onClose: () => setState(() => _selected = null),
+                  ),
+                ),
+              ),
+            );
+          }
+
+          return DialogScaffold(
+            title: AppStrings.images,
+            maxWidth: maxWidth,
+            maxHeight: maxHeight,
+            content: GalleryGrid(
+              items: items,
+              onTap: (i) => setState(() => _selected = i),
             ),
           );
-        },
-      ),
+        });
+      },
     );
   }
 }
@@ -122,7 +106,6 @@ class _PhotoView extends StatelessWidget {
   final VoidCallback onClose;
 
   const _PhotoView({
-    super.key,
     required this.items,
     required this.index,
     required this.onSelect,
@@ -166,30 +149,39 @@ class _PhotoView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Reused top bar
-        _TopBar(
-          title: sessionTitle,
-          actions: [
-            _ActionIcon(
+        // Header with actions
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Text(
+                sessionTitle,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            IconButton(
               tooltip: AppTooltips.downloadImage,
-              icon: Icons.download_rounded,
+              icon: const Icon(Icons.download_rounded),
               onPressed: () => _download(context, it),
             ),
-            _ActionIcon(
+            IconButton(
               tooltip: AppTooltips.openInChat,
-              icon: Icons.chat_bubble_rounded,
+              icon: const Icon(Icons.chat_bubble_rounded),
               onPressed: () => _openInChat(context, it),
             ),
-            _ActionIcon(
+            IconButton(
               tooltip: AppStrings.close,
-              icon: Icons.close_rounded,
+              icon: const Icon(Icons.close_rounded),
               onPressed: onClose,
             ),
           ],
         ),
         SizedBox(height: 1.0.h.clamp(8, 14)),
-
-        // Large preview (placeholder style)
+        // Large preview
         Expanded(
           child: Center(
             child: AspectRatio(
@@ -201,9 +193,8 @@ class _PhotoView extends StatelessWidget {
             ),
           ),
         ),
-
         SizedBox(height: 1.2.h.clamp(8, 16)),
-        // Bottom thumbnails strip
+        // Thumbnails
         SizedBox(
           height: 84,
           child: ListView.separated(
@@ -341,66 +332,6 @@ class _LargePreview extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// Helper widgets (reduce UI duplication)
-class _TopBar extends StatelessWidget {
-  final String title;
-  final List<Widget> actions;
-  const _TopBar({required this.title, required this.actions});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            title,
-            style: theme.textTheme.titleLarge,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            softWrap: false,
-          ),
-        ),
-        ...actions,
-      ],
-    );
-  }
-}
-
-class _ActionIcon extends StatelessWidget {
-  final String tooltip;
-  final IconData icon;
-  final VoidCallback onPressed;
-  const _ActionIcon({
-    required this.tooltip,
-    required this.icon,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: IconButton(onPressed: onPressed, icon: Icon(icon)),
-    );
-  }
-}
-
-class _BottomCloseButton extends StatelessWidget {
-  const _BottomCloseButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: TextButton(
-        onPressed: () => Navigator.of(context).pop(),
-        child: Text(AppStrings.close),
       ),
     );
   }

@@ -1,85 +1,40 @@
 import 'package:flutter/material.dart';
 import '../../core/sizer/app_sizer.dart';
-
 import '../../enums/app.enum.dart';
+import 'elements/dialog_scaffold.dart';
 
 class PremiumDialog extends StatelessWidget {
   const PremiumDialog({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Dialog(
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: 4.w.clamp(12, 32),
-        vertical: 3.h.clamp(16, 36),
-      ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isNarrow = constraints.maxWidth < 720;
-          final maxWidth =
-              isNarrow ? constraints.maxWidth : 86.w.clamp(680, 980) as double;
-          final maxHeight =
-              isNarrow
-                  ? 78.h.clamp(420, 820) as double
-                  : 70.h.clamp(520, 760) as double;
-          final cardWidth = isNarrow ? maxWidth - 4.w : (maxWidth - 3.6.w) / 2;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 720;
+        final maxWidth =
+            isNarrow ? constraints.maxWidth : 86.w.clamp(680, 980) as double;
+        final cardWidth = isNarrow ? maxWidth - 4.w : (maxWidth - 3.6.w) / 2;
 
-          return ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: maxWidth,
-              maxHeight: maxHeight,
+        return DialogScaffold(
+          title: AppStrings.pricingTitle,
+          content: SingleChildScrollView(
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 1.2.w.clamp(8, 20),
+              runSpacing: 1.2.h.clamp(8, 20),
+              children:
+                  PricingPlan.values
+                      .map(
+                        (p) => SizedBox(
+                          width: cardWidth,
+                          child: _PlanCard(plan: p),
+                        ),
+                      )
+                      .toList(),
             ),
-            child: Padding(
-              padding: EdgeInsets.all(2.h.clamp(12, 24)),
-              child: Column(
-                children: [
-                  Text(
-                    AppStrings.pricingTitle,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.titleLarge,
-                  ),
-                  SizedBox(height: 1.6.h.clamp(10, 24)),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 1.2.w.clamp(8, 20),
-                        runSpacing: 1.2.h.clamp(8, 20),
-                        children:
-                            PricingPlan.values
-                                .map(
-                                  (p) => SizedBox(
-                                    width: cardWidth,
-                                    child: _PlanCard(plan: p),
-                                  ),
-                                )
-                                .toList(),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 1.0.h.clamp(6, 14)),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: Text(AppStrings.close),
-                      ),
-                      SizedBox(width: 1.2.w.clamp(8, 16)),
-                      FilledButton(
-                        onPressed: () {},
-                        child: Text(AppStrings.continueAction),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
