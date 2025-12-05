@@ -140,9 +140,29 @@ class _ChatAreaState extends State<ChatArea> {
     final theme = Theme.of(context);
 
     return SafeArea(
-      top: false, // top padding is handled by HomePage
+      top: false,
       child: Column(
         children: [
+          Obx(() {
+            final isEmpty = _chat.messages.isEmpty;
+            final title =
+                isEmpty
+                    ? AppStrings.appTitle
+                    : _chat.titleFor(_chat.currentIndex);
+            return Padding(
+              padding: EdgeInsets.only(
+                top: 0.8.ch(context).clamp(6.0, 12.0),
+                bottom: 0.6.ch(context).clamp(4.0, 10.0),
+              ),
+              child: Text(
+                title,
+                style: theme.textTheme.titleLarge,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
+            );
+          }),
           Expanded(
             child: Center(
               child: ConstrainedBox(
@@ -162,7 +182,6 @@ class _ChatAreaState extends State<ChatArea> {
                     return Obx(() {
                       final items = _chat.messages;
                       if (items.isEmpty) {
-                        // Centered placeholder + input (ChatGPT-like)
                         return Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -235,6 +254,7 @@ class _ChatAreaState extends State<ChatArea> {
                               isLast && _chat.isStreaming.value && isAssistant;
                           return MessageBubble(
                             message: msg,
+                            messageIndex: index,
                             // Only the last assistant bubble listens to live text
                             streamingText: useStream ? _chat.streamText : null,
                           );
