@@ -23,16 +23,17 @@ class _SearchChatsDialogState extends State<SearchChatsDialog> {
   }
 
   // Build grouped items (newest -> oldest) using session updatedAt
-  List<_Section> _buildSections(ChatController chat) {
+  List<Section> _buildSections(ChatController chat) {
     // Prepare list sorted by last activity desc
     final indices = chat.nonEmptySessionIndicesByUpdatedDesc;
     final items =
         indices
             .map(
-              (i) => _SessionItem(
+              (i) => SessionItem(
                 index: i,
                 title: chat.titleFor(i),
                 updatedAt: chat.updatedAtOf(i),
+                isFavorite: chat.isFavorite(i),
               ),
             )
             .toList();
@@ -44,7 +45,11 @@ class _SearchChatsDialogState extends State<SearchChatsDialog> {
             ? items
             : items.where((e) => e.title.toLowerCase().contains(q)).toList();
 
-    // Group by date bucket
+    // Separate favorites from regular items
+    final favorites = filtered.where((e) => e.isFavorite).toList();
+    final regular = filtered.where((e) => !e.isFavorite).toList();
+
+    // Group regular items by date bucket
     final now = DateTime.now();
     String bucketOf(DateTime d) {
       final dt = DateTime(d.year, d.month, d.day);
@@ -56,18 +61,20 @@ class _SearchChatsDialogState extends State<SearchChatsDialog> {
       return AppStrings.older;
     }
 
-    final Map<String, List<_SessionItem>> groups = {
+    final Map<String, List<SessionItem>> groups = {
+      AppStrings.favorites: favorites,
       AppStrings.today: [],
       AppStrings.yesterday: [],
       AppStrings.last7Days: [],
       AppStrings.older: [],
     };
-    for (final it in filtered) {
+    for (final it in regular) {
       groups[bucketOf(it.updatedAt)]!.add(it);
     }
 
-    // Keep only non-empty sections in order
+    // Keep only non-empty sections in order (favorites first)
     final order = [
+      AppStrings.favorites,
       AppStrings.today,
       AppStrings.yesterday,
       AppStrings.last7Days,
@@ -75,7 +82,7 @@ class _SearchChatsDialogState extends State<SearchChatsDialog> {
     ];
     return order
         .where((k) => groups[k]!.isNotEmpty)
-        .map((k) => _Section(title: k, items: groups[k]!))
+        .map((k) => Section(title: k, items: groups[k]!))
         .toList();
   }
 
@@ -110,14 +117,14 @@ class _SearchChatsDialogState extends State<SearchChatsDialog> {
               child: Obx(() {
                 // Rebuild on chat changes, keep UX responsive
                 final sections = _buildSections(chat);
-                final rows = <_Row>[];
+                final rows = <SessionRow>[];
                 // First row: New chat
-                rows.add(_Row.newChat());
+                rows.add(SessionRow.newChat());
                 // Then grouped sections
                 for (final sec in sections) {
-                  rows.add(_Row.header(sec.title));
+                  rows.add(SessionRow.header(sec.title));
                   for (final it in sec.items) {
-                    rows.add(_Row.item(it));
+                    rows.add(SessionRow.item(it));
                   }
                 }
 
@@ -161,7 +168,7 @@ class _SearchChatsDialogState extends State<SearchChatsDialog> {
                                   final r = rows[i];
                                   Widget? tile;
                                   switch (r.type) {
-                                    case _RowType.newChat:
+                                    case RowType.newChat:
                                       tile = ListTile(
                                         dense: true,
                                         leading: const Icon(
@@ -174,7 +181,7 @@ class _SearchChatsDialogState extends State<SearchChatsDialog> {
                                         },
                                       );
                                       break;
-                                    case _RowType.header:
+                                    case RowType.header:
                                       tile = Padding(
                                         padding: EdgeInsets.fromLTRB(
                                           2.w.clamp(12, 20),
@@ -195,7 +202,7 @@ class _SearchChatsDialogState extends State<SearchChatsDialog> {
                                         ),
                                       );
                                       break;
-                                    case _RowType.item:
+                                    case RowType.item:
                                       final item = r.item!;
                                       final isSelected =
                                           item.index == chat.currentIndex;
@@ -243,9 +250,9 @@ class _SearchChatsDialogState extends State<SearchChatsDialog> {
                                   // Add divider below regular items (not after headers or last)
                                   final isLast = i == rows.length - 1;
                                   final showDivider =
-                                      r.type == _RowType.item &&
+                                      r.type == RowType.item &&
                                       !isLast &&
-                                      rows[i + 1].type != _RowType.header;
+                                      rows[i + 1].type != RowType.header;
                                   return Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.stretch,
@@ -281,36 +288,4 @@ class _SearchChatsDialogState extends State<SearchChatsDialog> {
       ),
     );
   }
-}
-
-// Local models for dialog grouping
-class _SessionItem {
-  final int index;
-  final String title;
-  final DateTime updatedAt;
-  _SessionItem({
-    required this.index,
-    required this.title,
-    required this.updatedAt,
-  });
-}
-
-class _Section {
-  final String title;
-  final List<_SessionItem> items;
-  _Section({required this.title, required this.items});
-}
-
-enum _RowType { newChat, header, item }
-
-class _Row {
-  final _RowType type;
-  final String? text;
-  final _SessionItem? item;
-
-  _Row._(this.type, {this.text, this.item});
-
-  factory _Row.newChat() => _Row._(_RowType.newChat);
-  factory _Row.header(String t) => _Row._(_RowType.header, text: t);
-  factory _Row.item(_SessionItem it) => _Row._(_RowType.item, item: it);
 }

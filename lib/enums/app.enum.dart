@@ -77,6 +77,7 @@ class AppStrings {
   static const featUnlockAllVendors = 'Tüm grupların tüm modelleri dahil';
 
   static const history = 'Geçmiş';
+  static const favorites = 'Favoriler';
   static const attachFile = 'Dosya ekle';
   static String supportedExts =
       'Desteklenen formatlar: ${extensions.map((e) => '.$e').join(', ')}';
@@ -114,6 +115,7 @@ class AppStrings {
   static const renameChat = 'Sohbet adını değiştir';
   static const favoriteChat = 'Sohbeti favorile';
   static const unfavoriteChat = 'Favoriden çıkar';
+  static const chatSettings = 'Sohbet ayarları';
   static const deleteChat = 'Sohbeti sil';
   static const deleteChatConfirmTitle = 'Sohbet silinsin mi?';
   static const deleteChatConfirmBody =
@@ -151,9 +153,25 @@ class AppStrings {
   // Thinking label
   static const thinking = 'Düşünüyor';
 
+  // Message actions
+  static const editMessage = 'Düzenle';
+  static const copyMessage = 'Kopyala';
+  static const copiedToClipboard = 'Panoya kopyalandı';
+
   // Library dialog
   static const images = 'Görseller';
   static const noImages = 'Henüz görsel yok';
+
+  // User profile section
+  static const userName = 'Kullanıcı';
+  static const settings = 'Ayarlar';
+
+  // User menu items
+  static const upgradePlan = 'Planı yükselt';
+  static const customization = 'Kişiselleştirme';
+  static const help = 'Yardım';
+  static const logout = 'Oturumu kapat';
+  static const currentPlan = 'Ücretsiz';
 }
 
 class AppTooltips {
@@ -172,6 +190,19 @@ class AppTooltips {
       'Seçilen model mantık yürütme modunu desteklemiyor';
   static const openInChat = 'Sohbette aç';
   static const downloadImage = 'Görseli indir';
+
+  // Message actions
+  static const editMessage = 'Düzenle';
+  static const copyMessage = 'Kopyala';
+
+  // Assistant message actions
+  static const likeMessage = 'Beğendim';
+  static const dislikeMessage = 'Beğenmedim';
+  static const regenerateMessage = 'Yeniden oluştur';
+
+  // User profile section
+  static const userProfile = 'Profil';
+  static const settings = 'Ayarlar';
 }
 
 // Pricing enum + mapping
@@ -606,7 +637,45 @@ class AppModels {
   static String logo(String id) => meta(id).logoUrl;
 }
 
+// User menu actions
+enum UserMenuAction { upgradePlan, customization, settings, help, logout }
+
+enum RowType { newChat, header, item }
+
 // Mock file extensions
 const List<String> extensions = ['pdf', 'jpg', 'png', 'docx', 'xlsx'];
 
 String get randomExtension => extensions[Random().nextInt(extensions.length)];
+
+// Local models for dialog grouping
+class SessionItem {
+  final int index;
+  final String title;
+  final DateTime updatedAt;
+  final bool isFavorite;
+  SessionItem({
+    required this.index,
+    required this.title,
+    required this.updatedAt,
+    required this.isFavorite,
+  });
+}
+
+class Section {
+  final String title;
+  final List<SessionItem> items;
+  Section({required this.title, required this.items});
+}
+
+class SessionRow {
+  final RowType type;
+  final String? text;
+  final SessionItem? item;
+
+  SessionRow._(this.type, {this.text, this.item});
+
+  factory SessionRow.newChat() => SessionRow._(RowType.newChat);
+  factory SessionRow.header(String t) => SessionRow._(RowType.header, text: t);
+  factory SessionRow.item(SessionItem it) =>
+      SessionRow._(RowType.item, item: it);
+}

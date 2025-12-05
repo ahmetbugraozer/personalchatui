@@ -334,22 +334,9 @@ class SidebarPanel extends StatelessWidget {
                                     );
                                   }),
                                 ],
-                                // History section
-                                sectionHeader(AppStrings.history),
-                                if (regularIndices.isEmpty)
-                                  Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 1.6
-                                          .cw(context)
-                                          .clamp(12.0, 16.0),
-                                      vertical: 0.8.ch(context).clamp(6.0, 8.0),
-                                    ),
-                                    child: Text(
-                                      AppStrings.noChatsYet,
-                                      style: theme.textTheme.bodySmall,
-                                    ),
-                                  )
-                                else
+                                // History section (only if there are non-favorite chats)
+                                if (regularIndices.isNotEmpty) ...[
+                                  sectionHeader(AppStrings.history),
                                   ...regularIndices.map((realIndex) {
                                     final label = chat.titleFor(realIndex);
                                     final logos =
@@ -389,6 +376,7 @@ class SidebarPanel extends StatelessWidget {
                                           ),
                                     );
                                   }),
+                                ],
                               ],
                             );
                           }),
