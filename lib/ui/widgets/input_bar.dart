@@ -26,69 +26,69 @@ class _InputBarState extends State<InputBar> {
   final List<Attachment> _attachments = [];
   final Map<String, Timer> _uploadTimers = {};
   late final ChatController _chat;
-  Worker? _clearWorker;
 
-  // Listen to attachment-only clear requests (model change)
-  Worker? _clearAttachmentsWorker;
+  // GetX Workers - use late final for proper initialization
+  late final Worker _clearWorker;
+  late final Worker _clearAttachmentsWorker;
+
   bool _dropping = false;
 
   @override
   void initState() {
     super.initState();
     _chat = Get.find<ChatController>();
-    _controller.addListener(() {
-      final v = _controller.text.trim().isNotEmpty;
-      if (v != _hasText) setState(() => _hasText = v);
-    });
-    _clearWorker = ever<int>(_chat.composerClearSignal, (_) {
-      if (_controller.text.isNotEmpty || _attachments.isNotEmpty) {
-        // Cancel all pending uploads
-        for (final t in _uploadTimers.values) {
-          t.cancel();
-        }
-        _uploadTimers.clear();
-        _controller.clear();
-        _attachments.clear();
+    _controller.addListener(_onTextChanged);
 
-        // Reset global upload state
-        _chat.isUploading.value = false;
-        _chat.uploadProgress.value = 0.0;
-        setState(() {
-          _hasText = false;
-        });
-      }
-    });
-
-    // Clear only attachments when model doesn't support files (keep prompt)
-    _clearAttachmentsWorker = ever<int>(_chat.attachmentClearSignal, (_) {
-      if (_attachments.isNotEmpty) {
-        for (final t in _uploadTimers.values) {
-          t.cancel();
-        }
-        _uploadTimers.clear();
-        _attachments.clear();
-        // Hide drop overlay and reset global upload state
-        _dropping = false;
-        _chat.isUploading.value = false;
-        _chat.uploadProgress.value = 0.0;
-        setState(() {});
-      } else {
-        // Still ensure overlay hidden even if no attachments yet
-        if (_dropping) setState(() => _dropping = false);
-      }
-    });
+    // Initialize workers
+    _clearWorker = ever<int>(_chat.composerClearSignal, _onComposerClear);
+    _clearAttachmentsWorker = ever<int>(
+      _chat.attachmentClearSignal,
+      _onAttachmentClear,
+    );
   }
 
-  @override
-  void dispose() {
-    // Cancel timers
+  void _onTextChanged() {
+    final v = _controller.text.trim().isNotEmpty;
+    if (v != _hasText) setState(() => _hasText = v);
+  }
+
+  void _onComposerClear(int _) {
+    if (_controller.text.isNotEmpty || _attachments.isNotEmpty) {
+      _cancelAllUploads();
+      _controller.clear();
+      _attachments.clear();
+      _chat.isUploading.value = false;
+      _chat.uploadProgress.value = 0.0;
+      setState(() => _hasText = false);
+    }
+  }
+
+  void _onAttachmentClear(int _) {
+    if (_attachments.isNotEmpty) {
+      _cancelAllUploads();
+      _attachments.clear();
+      _dropping = false;
+      _chat.isUploading.value = false;
+      _chat.uploadProgress.value = 0.0;
+      setState(() {});
+    } else {
+      if (_dropping) setState(() => _dropping = false);
+    }
+  }
+
+  void _cancelAllUploads() {
     for (final t in _uploadTimers.values) {
       t.cancel();
     }
     _uploadTimers.clear();
-    _clearWorker?.dispose();
-    // New
-    _clearAttachmentsWorker?.dispose();
+  }
+
+  @override
+  void dispose() {
+    _cancelAllUploads();
+    _clearWorker.dispose();
+    _clearAttachmentsWorker.dispose();
+    _controller.removeListener(_onTextChanged);
     _controller.dispose();
     super.dispose();
   }
@@ -112,10 +112,7 @@ class _InputBarState extends State<InputBar> {
     );
 
     // Do not keep timers/attachments after sending
-    for (final t in _uploadTimers.values) {
-      t.cancel();
-    }
-    _uploadTimers.clear();
+    _cancelAllUploads();
     _controller.clear();
     _attachments.clear();
     // Reset global upload state
@@ -289,12 +286,9 @@ class _InputBarState extends State<InputBar> {
                                   : null,
                           label: Text(a.name),
                           onDeleted: () {
-                            // Cancel timer if any
                             _uploadTimers[a.id]?.cancel();
                             _uploadTimers.remove(a.id);
                             _attachments.removeAt(e.key);
-
-                            // Update global
                             _updateAggregateUpload();
                             setState(() {});
                           },

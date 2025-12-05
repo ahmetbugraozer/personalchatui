@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 class SidebarEntry extends StatelessWidget {
   final IconData icon;
-  final IconData? selectedIcon; // New: icon to show when selected
+  final IconData? selectedIcon;
   final String label;
   final bool open;
-  final bool isSelected; // New: selection state
+  final bool isSelected;
   final VoidCallback? onTap;
   final Widget? trailing;
 
@@ -15,7 +15,7 @@ class SidebarEntry extends StatelessWidget {
     this.selectedIcon,
     required this.label,
     required this.open,
-    this.isSelected = false, // default false
+    this.isSelected = false,
     this.onTap,
     this.trailing,
   });
@@ -52,7 +52,7 @@ class SidebarEntry extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             softWrap: false,
-                            style: theme.textTheme.bodyMedium,
+                            style: theme.textTheme.titleMedium,
                           ),
                         ),
                         if (trailing != null)

@@ -279,7 +279,7 @@ class SidebarPanel extends StatelessWidget {
                                       ),
                                       child: Text(
                                         AppStrings.noChatsYet,
-                                        style: theme.textTheme.bodySmall,
+                                        style: theme.textTheme.labelLarge,
                                       ),
                                     ),
                                   )
