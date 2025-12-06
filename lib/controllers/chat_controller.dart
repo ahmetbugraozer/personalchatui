@@ -711,12 +711,10 @@ class ChatController extends GetxController {
     }
   }
 
-  // Sync all active branches with current messages
-  // Only update the deepest (most recent) branch to avoid duplicates
+  // Optimize _syncAllActiveBranches - only call when necessary
   void _syncAllActiveBranches(ChatSession session) {
     if (session.currentBranchIndex.isEmpty) return;
 
-    // Find the deepest fork point in current messages
     String? deepestParentId;
     int deepestForkIndex = -1;
 
@@ -730,7 +728,7 @@ class ChatController extends GetxController {
         final parentMsgIndex = session.messages.indexWhere(
           (m) => m.id == parentId,
         );
-        if (parentMsgIndex == -1) continue; // Parent not in current view
+        if (parentMsgIndex == -1) continue;
         forkIndex = parentMsgIndex + 1;
       }
 
@@ -740,7 +738,6 @@ class ChatController extends GetxController {
       }
     }
 
-    // Only update the deepest branch (save all remaining messages)
     if (deepestParentId != null &&
         deepestForkIndex >= 0 &&
         deepestForkIndex < session.messages.length) {
@@ -752,6 +749,7 @@ class ChatController extends GetxController {
                 .sublist(deepestForkIndex)
                 .map((m) => m.copyWith())
                 .toList();
+        // Only refresh branches, not messages (they're already updated)
         session.branches.refresh();
       }
     }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:personalchatui/ui/widgets/plan_card.dart';
 import '../../core/sizer/app_sizer.dart';
 import '../../enums/app.enum.dart';
 import 'elements/dialog_scaffold.dart';
@@ -10,147 +11,62 @@ class PremiumDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < 720;
-        final maxWidth =
-            isNarrow ? constraints.maxWidth : 86.w.clamp(680, 980) as double;
-        final cardWidth = isNarrow ? maxWidth - 4.w : (maxWidth - 3.6.w) / 2;
+        // Narrow: < 900px (vertical layout)
+        // Wide: >= 900px (horizontal layout with 4 cards in a row)
+        final isNarrow = constraints.maxWidth < 900;
 
+        final maxWidth =
+            isNarrow
+                ? (constraints.maxWidth * 0.95).clamp(320.0, 480.0)
+                : 92.w.clamp(800, 1100) as double;
+
+        if (isNarrow) {
+          // Vertical layout - use DialogScaffold with Expanded content
+          final maxHeight = 80.h.clamp(500, 900) as double;
+          return DialogScaffold(
+            title: AppStrings.pricingTitle,
+            maxWidth: maxWidth,
+            maxHeight: maxHeight,
+            content: _buildVerticalLayout(context),
+          );
+        }
+
+        // Horizontal layout - use DialogScaffold with IntrinsicHeight
         return DialogScaffold(
           title: AppStrings.pricingTitle,
-          content: SingleChildScrollView(
-            child: Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 1.2.w.clamp(8, 20),
-              runSpacing: 1.2.h.clamp(8, 20),
-              children:
-                  PricingPlan.values
-                      .map(
-                        (p) => SizedBox(
-                          width: cardWidth,
-                          child: _PlanCard(plan: p),
-                        ),
-                      )
-                      .toList(),
-            ),
-          ),
+          maxWidth: maxWidth,
+          useIntrinsicHeight: true,
+          content: _buildHorizontalLayout(context),
         );
       },
     );
   }
-}
 
-class _PlanCard extends StatelessWidget {
-  final PricingPlan plan;
-  const _PlanCard({required this.plan});
+  // Vertical layout for narrow screens - scrollable column
+  Widget _buildVerticalLayout(BuildContext context) {
+    return ListView.separated(
+      padding: EdgeInsets.symmetric(vertical: 0.8.h.clamp(6, 12)),
+      itemCount: PricingPlan.values.length,
+      separatorBuilder: (_, __) => SizedBox(height: 1.2.h.clamp(10, 16)),
+      itemBuilder: (context, index) {
+        return PlanCard(plan: PricingPlan.values[index]);
+      },
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isPlus = plan.isPopular;
+  // Horizontal layout for wide screens - 4 cards in a row with equal height
+  Widget _buildHorizontalLayout(BuildContext context) {
+    final plans = PricingPlan.values;
+    final cardSpacing = 1.2.w.clamp(8, 14) as double;
 
-    final Color cardBg =
-        isPlus
-            ? theme.colorScheme.primary.withValues(alpha: 0.10)
-            : theme.cardColor;
-    final Color border =
-        isPlus
-            ? theme.colorScheme.primary.withValues(alpha: 0.35)
-            : theme.dividerColor;
-    final Color titleColor =
-        isPlus
-            ? theme.colorScheme.primary
-            : theme.textTheme.titleMedium?.color ?? theme.colorScheme.onSurface;
-    final Color textColor =
-        isPlus
-            ? theme.colorScheme.primary
-            : theme.textTheme.bodyMedium?.color ?? theme.colorScheme.onSurface;
-
-    return Container(
-      padding: EdgeInsets.all(1.6.h.clamp(12, 20)),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header row with title and "Popüler" tag for Plus
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  plan.title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: titleColor,
-                  ),
-                ),
-              ),
-              if (isPlus)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.4),
-                    ),
-                  ),
-                  child: Text(
-                    AppStrings.planPopularTag.toUpperCase(),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          SizedBox(height: 0.6.h.clamp(6, 12)),
-          Text(plan.price, style: theme.textTheme.headlineSmall?.copyWith()),
-          SizedBox(height: 0.6.h.clamp(6, 12)),
-          Text(
-            plan.blurb,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: textColor.withValues(alpha: 0.8),
-            ),
-          ),
-          SizedBox(height: 1.2.h.clamp(8, 16)),
-          SizedBox(
-            width: double.infinity,
-            child:
-                isPlus || plan == PricingPlan.pro
-                    ? FilledButton(onPressed: () {}, child: Text(plan.cta))
-                    : OutlinedButton(
-                      onPressed: plan == PricingPlan.free ? null : () {},
-                      child: Text(plan.cta),
-                    ),
-          ),
-          SizedBox(height: 1.0.h.clamp(6, 14)),
-          ...plan.features.map(
-            (f) => Padding(
-              padding: EdgeInsets.symmetric(vertical: 0.3.h.clamp(2, 6)),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.check_circle,
-                    size: 18,
-                    color: theme.colorScheme.primary,
-                  ),
-                  SizedBox(width: 1.w.clamp(6, 10)),
-                  Expanded(child: Text(f, style: theme.textTheme.bodyMedium)),
-                ],
-              ),
-            ),
-          ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (int i = 0; i < plans.length; i++) ...[
+          Expanded(child: PlanCard(plan: plans[i])),
+          if (i < plans.length - 1) SizedBox(width: cardSpacing),
         ],
-      ),
+      ],
     );
   }
 }

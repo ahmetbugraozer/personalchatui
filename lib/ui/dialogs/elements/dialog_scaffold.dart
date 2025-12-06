@@ -14,6 +14,10 @@ class DialogScaffold extends StatelessWidget {
   final double? maxWidth;
   final double? maxHeight;
 
+  /// When true, content is wrapped with IntrinsicHeight instead of Expanded.
+  /// Use this for content that should size itself based on its children.
+  final bool useIntrinsicHeight;
+
   const DialogScaffold({
     super.key,
     required this.title,
@@ -23,6 +27,7 @@ class DialogScaffold extends StatelessWidget {
     this.onClose,
     this.maxWidth,
     this.maxHeight,
+    this.useIntrinsicHeight = false,
   });
 
   @override
@@ -41,6 +46,45 @@ class DialogScaffold extends StatelessWidget {
               (isNarrow
                   ? constraints.maxWidth
                   : 86.w.clamp(680, 980) as double);
+
+          // Build content widget based on mode
+          Widget contentWidget;
+          if (useIntrinsicHeight) {
+            contentWidget = IntrinsicHeight(child: content);
+          } else {
+            contentWidget = Expanded(child: content);
+          }
+
+          // Build the column
+          final columnChildren = <Widget>[
+            // Title row
+            DialogHeader(title: title, actions: titleActions),
+            SizedBox(height: 1.6.h.clamp(10, 22)),
+            // Content
+            contentWidget,
+            // Close button
+            if (showCloseButton) ...[
+              SizedBox(height: 1.0.h.clamp(6, 14)),
+              DialogFooter(onClose: onClose),
+            ],
+          ];
+
+          // When using intrinsic height, don't constrain maxHeight
+          if (useIntrinsicHeight) {
+            return ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: effectiveMaxWidth),
+              child: Padding(
+                padding: EdgeInsets.all(2.h.clamp(12, 24)),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: columnChildren,
+                ),
+              ),
+            );
+          }
+
+          // Standard mode with maxHeight
           final effectiveMaxHeight =
               maxHeight ??
               (isNarrow
@@ -56,18 +100,7 @@ class DialogScaffold extends StatelessWidget {
               padding: EdgeInsets.all(2.h.clamp(12, 24)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Title row
-                  DialogHeader(title: title, actions: titleActions),
-                  SizedBox(height: 1.6.h.clamp(10, 22)),
-                  // Content
-                  Expanded(child: content),
-                  // Close button
-                  if (showCloseButton) ...[
-                    SizedBox(height: 1.0.h.clamp(6, 14)),
-                    DialogFooter(onClose: onClose),
-                  ],
-                ],
+                children: columnChildren,
               ),
             ),
           );

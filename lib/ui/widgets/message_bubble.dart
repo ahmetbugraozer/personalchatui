@@ -23,7 +23,8 @@ class MessageBubble extends StatefulWidget {
 }
 
 class _MessageBubbleState extends State<MessageBubble> {
-  bool _hovering = false;
+  // Use ValueNotifier for hover to avoid full widget rebuild
+  final _hovering = ValueNotifier<bool>(false);
   bool _editing = false;
   bool _liked = false;
   bool _disliked = false;
@@ -32,6 +33,7 @@ class _MessageBubbleState extends State<MessageBubble> {
 
   @override
   void dispose() {
+    _hovering.dispose();
     _editController.dispose();
     _editFocus.dispose();
     super.dispose();
@@ -116,8 +118,8 @@ class _MessageBubbleState extends State<MessageBubble> {
             : theme.textTheme.bodyMedium?.color;
 
     return MouseRegion(
-      onEnter: (_) => setState(() => _hovering = true),
-      onExit: (_) => setState(() => _hovering = false),
+      onEnter: (_) => _hovering.value = true,
+      onExit: (_) => _hovering.value = false,
       child: Align(
         alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
         child: ConstrainedBox(
@@ -264,65 +266,76 @@ class _MessageBubbleState extends State<MessageBubble> {
                       ),
                     ),
                   ),
-                  // Hover action buttons for USER messages
-                  if (isUser && _hovering && !_editing)
-                    Positioned(
-                      bottom: -6,
-                      right: 8,
-                      child: _ActionBar(
-                        theme: theme,
-                        children: [
-                          _ActionButton(
-                            tooltip: AppTooltips.editMessage,
-                            icon: Icons.edit_outlined,
-                            onTap: _startEdit,
+                  // Use ValueListenableBuilder for hover actions
+                  if (isUser && !_editing)
+                    ValueListenableBuilder<bool>(
+                      valueListenable: _hovering,
+                      builder: (context, hovering, _) {
+                        if (!hovering) return const SizedBox.shrink();
+                        return Positioned(
+                          bottom: -6,
+                          right: 8,
+                          child: _ActionBar(
+                            theme: theme,
+                            children: [
+                              _ActionButton(
+                                tooltip: AppTooltips.editMessage,
+                                icon: Icons.edit_outlined,
+                                onTap: _startEdit,
+                              ),
+                              _ActionButton(
+                                tooltip: AppTooltips.copyMessage,
+                                icon: Icons.copy_outlined,
+                                onTap: _copyToClipboard,
+                              ),
+                            ],
                           ),
-                          _ActionButton(
-                            tooltip: AppTooltips.copyMessage,
-                            icon: Icons.copy_outlined,
-                            onTap: _copyToClipboard,
-                          ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
-                  // Hover action buttons for ASSISTANT messages
-                  if (!isUser && _hovering && widget.streamingText == null)
-                    Positioned(
-                      bottom: -6,
-                      left: 8,
-                      child: _ActionBar(
-                        theme: theme,
-                        children: [
-                          _ActionButton(
-                            tooltip: AppTooltips.likeMessage,
-                            icon:
-                                _liked
-                                    ? Icons.thumb_up
-                                    : Icons.thumb_up_outlined,
-                            onTap: _toggleLike,
-                            isActive: _liked,
+                  if (!isUser && widget.streamingText == null)
+                    ValueListenableBuilder<bool>(
+                      valueListenable: _hovering,
+                      builder: (context, hovering, _) {
+                        if (!hovering) return const SizedBox.shrink();
+                        return Positioned(
+                          bottom: -6,
+                          left: 8,
+                          child: _ActionBar(
+                            theme: theme,
+                            children: [
+                              _ActionButton(
+                                tooltip: AppTooltips.likeMessage,
+                                icon:
+                                    _liked
+                                        ? Icons.thumb_up
+                                        : Icons.thumb_up_outlined,
+                                onTap: _toggleLike,
+                                isActive: _liked,
+                              ),
+                              _ActionButton(
+                                tooltip: AppTooltips.dislikeMessage,
+                                icon:
+                                    _disliked
+                                        ? Icons.thumb_down
+                                        : Icons.thumb_down_outlined,
+                                onTap: _toggleDislike,
+                                isActive: _disliked,
+                              ),
+                              _ActionButton(
+                                tooltip: AppTooltips.copyMessage,
+                                icon: Icons.copy_outlined,
+                                onTap: _copyToClipboard,
+                              ),
+                              _ActionButton(
+                                tooltip: AppTooltips.regenerateMessage,
+                                icon: Icons.refresh_rounded,
+                                onTap: _regenerate,
+                              ),
+                            ],
                           ),
-                          _ActionButton(
-                            tooltip: AppTooltips.dislikeMessage,
-                            icon:
-                                _disliked
-                                    ? Icons.thumb_down
-                                    : Icons.thumb_down_outlined,
-                            onTap: _toggleDislike,
-                            isActive: _disliked,
-                          ),
-                          _ActionButton(
-                            tooltip: AppTooltips.copyMessage,
-                            icon: Icons.copy_outlined,
-                            onTap: _copyToClipboard,
-                          ),
-                          _ActionButton(
-                            tooltip: AppTooltips.regenerateMessage,
-                            icon: Icons.refresh_rounded,
-                            onTap: _regenerate,
-                          ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
                 ],
               ),

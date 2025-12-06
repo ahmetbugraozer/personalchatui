@@ -101,14 +101,10 @@ class AppTheme {
       ),
       scaffoldBackgroundColor: _lightBg,
       useMaterial3: true,
-      fontFamily: 'GoogleSansFlex', // Burada global font family tanımlıyoruz
+      fontFamily: 'GoogleSansFlex',
     );
 
     final theme = base.copyWith(
-      // 1. Yöntem: Global font family kullanımı
-      // textTheme: base.textTheme,
-
-      // 2. Yöntem: Detaylı text theme özelleştirmesi
       textTheme: _googleSansFlexTextTheme(base.textTheme, Colors.black87),
 
       appBarTheme: AppBarTheme(
@@ -133,6 +129,13 @@ class AppTheme {
         backgroundColor: _lightSurface,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      // Fix popup menu background color
+      popupMenuTheme: PopupMenuThemeData(
+        color: _lightSurface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 10,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       chipTheme: base.chipTheme.copyWith(
         backgroundColor: _lightSurface,
@@ -204,6 +207,13 @@ class AppTheme {
         backgroundColor: _darkSurface,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      // Popup menu theme for dark mode
+      popupMenuTheme: PopupMenuThemeData(
+        color: _darkCard,
+        surfaceTintColor: Colors.transparent,
+        elevation: 10,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       chipTheme: base.chipTheme.copyWith(
         backgroundColor: _darkCard,
