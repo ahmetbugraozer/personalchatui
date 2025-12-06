@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'core/theme/app_theme.dart';
+import 'core/routes/app_routes.dart';
 import 'controllers/theme_controller.dart';
 import 'controllers/sidebar_controller.dart';
 import 'controllers/chat_controller.dart';
-import 'ui/pages/home_page.dart';
 import 'enums/app.enum.dart';
 
 void main() {
@@ -30,7 +30,8 @@ class MyApp extends StatelessWidget {
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
         themeMode: theme.themeMode.value,
-        home: const HomePage(),
+        initialRoute: AppRoutes.auth,
+        getPages: AppRoutes.pages,
       ),
     );
   }

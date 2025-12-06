@@ -172,6 +172,40 @@ class AppStrings {
   static const help = 'Yardım';
   static const logout = 'Oturumu kapat';
   static const currentPlan = 'Ücretsiz';
+
+  // Auth strings
+  static const authLoginTitle = 'Giriş Yap';
+  static const authRegisterTitle = 'Kayıt Ol';
+  static const authForgotPasswordTitle = 'Şifremi Unuttum';
+  static const authEmail = 'E-posta';
+  static const authPassword = 'Şifre';
+  static const authConfirmPassword = 'Şifre (tekrar)';
+  static const authLogin = 'Giriş Yap';
+  static const authRegister = 'Kayıt Ol';
+  static const authForgotPassword = 'Şifremi unuttum';
+  static const authNoAccount = 'Hesabın yok mu?';
+  static const authHaveAccount = 'Zaten hesabın var mı?';
+  static const authForgotPasswordDesc =
+      'E-posta adresini gir, şifre sıfırlama bağlantısı gönderelim.';
+  static const authSendResetLink = 'Bağlantı Gönder';
+  static const authBackToLogin = 'Giriş sayfasına dön';
+  static const authPasswordResetSent = 'Bağlantı gönderildi';
+  static const authPasswordResetSentDesc =
+      'Şifre sıfırlama bağlantısı e-posta adresine gönderildi.';
+  static const logoutConfirmTitle = 'Oturumu kapat';
+  static const logoutConfirmContent =
+      'Oturumu kapatmak istediğinize emin misiniz?';
+
+  // Auth validation errors
+  static const authErrorEmailRequired = 'E-posta adresi gerekli';
+  static const authErrorEmailInvalid = 'Geçerli bir e-posta adresi girin';
+  static const authErrorPasswordRequired = 'Şifre gerekli';
+  static const authErrorPasswordTooShort = 'Şifre en az 8 karakter olmalı';
+  static const authErrorPasswordsNotMatch = 'Şifreler eşleşmiyor';
+  static const authErrorConfirmPasswordRequired = 'Şifre tekrarı gerekli';
+
+  static const authOrContinueWith = 'veya şununla devam et';
+  static const authWelcome = 'Hoş Geldiniz';
 }
 
 class AppTooltips {
@@ -203,6 +237,9 @@ class AppTooltips {
   // User profile section
   static const userProfile = 'Profil';
   static const settings = 'Ayarlar';
+  static const authLoginWithGoogle = 'Google ile giriş yap';
+  static const authLoginWithApple = 'Apple ile giriş yap';
+  static const authLoginWithFacebook = 'Facebook ile giriş yap';
 }
 
 // Pricing enum + mapping

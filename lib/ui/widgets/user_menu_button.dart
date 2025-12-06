@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../core/routes/app_routes.dart';
 import '../../enums/app.enum.dart';
+import '../dialogs/confirmation_dialog.dart';
 import '../dialogs/premium_dialog.dart';
 
 class UserMenuButton extends StatelessWidget {
@@ -18,13 +21,115 @@ class UserMenuButton extends StatelessWidget {
     required this.bottomRowPadV,
   });
 
+  Future<void> _handleLogout(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (_) => ConfirmationDialog(
+            title: AppStrings.logoutConfirmTitle,
+            content: AppStrings.logoutConfirmContent,
+            confirmText: AppStrings.logout,
+          ),
+    );
+
+    if (confirmed == true) {
+      // Show loading overlay
+      Get.dialog(
+        const PopScope(
+          canPop: false,
+          child: Center(child: CircularProgressIndicator()),
+        ),
+        barrierDismissible: false,
+      );
+
+      // Simulate logout delay
+      await Future.delayed(const Duration(milliseconds: 800));
+
+      // Navigate to auth page
+      Get.offAllNamed(AppRoutes.auth);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return PopupMenuButton<UserMenuAction>(
       tooltip: AppTooltips.userProfile,
+      offset: const Offset(0, -180),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      itemBuilder:
+          (context) => [
+            PopupMenuItem(
+              value: UserMenuAction.upgradePlan,
+              child: ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.stars_rounded),
+                title: Text(AppStrings.upgradePlan),
+                trailing: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    AppStrings.currentPlan,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const PopupMenuDivider(),
+            PopupMenuItem(
+              value: UserMenuAction.customization,
+              child: ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.palette_outlined),
+                title: Text(AppStrings.customization),
+              ),
+            ),
+            PopupMenuItem(
+              value: UserMenuAction.settings,
+              child: ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.settings_outlined),
+                title: Text(AppStrings.settings),
+              ),
+            ),
+            PopupMenuItem(
+              value: UserMenuAction.help,
+              child: ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.help_outline_rounded),
+                title: Text(AppStrings.help),
+              ),
+            ),
+            const PopupMenuDivider(),
+            PopupMenuItem(
+              value: UserMenuAction.logout,
+              child: ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  Icons.logout_rounded,
+                  color: theme.colorScheme.error,
+                ),
+                title: Text(
+                  AppStrings.logout,
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
+              ),
+            ),
+          ],
       onSelected: (action) {
         switch (action) {
           case UserMenuAction.upgradePlan:
@@ -40,151 +145,20 @@ class UserMenuButton extends StatelessWidget {
             // TODO: Open help
             break;
           case UserMenuAction.logout:
-            // TODO: Logout
+            _handleLogout(context);
             break;
         }
       },
-      itemBuilder:
-          (context) => [
-            PopupMenuItem<UserMenuAction>(
-              enabled: false,
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: avatarSize / 2,
-                    backgroundColor: theme.colorScheme.primary.withValues(
-                      alpha: 0.15,
-                    ),
-                    child: Text(
-                      AppStrings.userName.substring(0, 2).toUpperCase(),
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: userNameGap),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          AppStrings.userName,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          '@${AppStrings.userName.toLowerCase()}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.textTheme.bodySmall?.color?.withValues(
-                              alpha: 0.7,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  FilledButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      showDialog(
-                        context: context,
-                        builder: (_) => const PremiumDialog(),
-                      );
-                    },
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: Text(AppStrings.upgradePlan.split(' ').last),
-                  ),
-                ],
-              ),
-            ),
-
-            // User header item (non-selectable visual)
-            const PopupMenuDivider(),
-            PopupMenuItem(
-              value: UserMenuAction.upgradePlan,
-              child: Row(
-                children: [
-                  const Icon(Icons.rocket_launch_outlined, size: 20),
-                  const SizedBox(width: 12),
-                  Text(AppStrings.upgradePlan),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              value: UserMenuAction.customization,
-              child: Row(
-                children: [
-                  const Icon(Icons.palette_outlined, size: 20),
-                  const SizedBox(width: 12),
-                  Text(AppStrings.customization),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              value: UserMenuAction.settings,
-              child: Row(
-                children: [
-                  const Icon(Icons.settings_outlined, size: 20),
-                  const SizedBox(width: 12),
-                  Text(AppStrings.settings),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              value: UserMenuAction.help,
-              child: Row(
-                children: [
-                  const Icon(Icons.help_outline_rounded, size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(child: Text(AppStrings.help)),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    size: 20,
-                    color: theme.iconTheme.color?.withValues(alpha: 0.5),
-                  ),
-                ],
-              ),
-            ),
-            const PopupMenuDivider(),
-            PopupMenuItem(
-              value: UserMenuAction.logout,
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.logout_rounded,
-                    size: 20,
-                    color: theme.colorScheme.error,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    AppStrings.logout,
-                    style: TextStyle(color: theme.colorScheme.error),
-                  ),
-                ],
-              ),
-            ),
-          ],
       child: Container(
         padding: EdgeInsets.symmetric(
           horizontal: bottomRowPadH,
-          vertical: bottomRowPadV * 0.5,
+          vertical: bottomRowPadV,
         ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: theme.dividerColor),
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
             CircleAvatar(
               radius: avatarSize / 2,
@@ -192,20 +166,24 @@ class UserMenuButton extends StatelessWidget {
                 alpha: 0.15,
               ),
               child: Icon(
-                Icons.person_outline_rounded,
+                Icons.person_rounded,
                 size: avatarSize * 0.6,
                 color: theme.colorScheme.primary,
               ),
             ),
             if (openTarget) ...[
               SizedBox(width: userNameGap),
-              Flexible(
+              Expanded(
                 child: Text(
                   AppStrings.userName,
+                  style: theme.textTheme.bodyMedium,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium,
                 ),
+              ),
+              Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: theme.iconTheme.color?.withValues(alpha: 0.7),
               ),
             ],
           ],
