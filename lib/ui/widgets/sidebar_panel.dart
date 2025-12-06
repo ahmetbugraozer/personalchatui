@@ -7,7 +7,7 @@ import '../../controllers/sidebar_controller.dart';
 import '../../enums/app.enum.dart';
 import '../dialogs/search_chats_dialog.dart';
 import '../dialogs/library_dialog.dart';
-import '../dialogs/delete_chat_dialog.dart';
+import '../dialogs/confirmation_dialog.dart';
 import 'sidebar/sidebar_entry.dart';
 import 'sidebar/sidebar_history_item.dart';
 import 'user_menu_button.dart';
@@ -37,7 +37,11 @@ class SidebarPanel extends StatelessWidget {
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => DeleteChatDialog(title: label),
+      builder:
+          (_) => ConfirmationDialog.delete(
+            title: AppStrings.deleteChatConfirmTitle,
+            content: AppStrings.deleteChatDescription(label),
+          ),
     );
     if (confirmed == true) chat.deleteSession(index);
   }
