@@ -37,9 +37,7 @@ class AuthCard extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: theme.textTheme.headlineSmall,
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 2.4.h.clamp(18, 28)),

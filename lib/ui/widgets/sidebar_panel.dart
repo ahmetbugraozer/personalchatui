@@ -109,6 +109,12 @@ class SidebarPanel extends StatelessWidget {
             ),
           );
 
+          // Calculate minimum height needed for fixed elements
+          // Header + dividers + entries + bottom row = roughly 400px minimum
+          final double minFixedHeight = headerHeight + bottomRowHeight + 280;
+          final double availableHeight = constraints.maxHeight;
+          final bool isVeryShort = availableHeight < minFixedHeight;
+
           return AnimatedContainer(
             duration: const Duration(milliseconds: 250),
             curve: Curves.easeOutQuart,
@@ -125,325 +131,368 @@ class SidebarPanel extends StatelessWidget {
                   color: theme.cardColor,
                   child: SizedBox(
                     width: expandedWidth,
-                    child: Column(
-                      children: [
-                        // ===== FIXED TOP SECTION =====
-                        // Header row
-                        Container(
-                          height: headerHeight,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: headerPaddingH,
-                          ),
-                          child: Row(
-                            children: [
-                              IconButton(
-                                tooltip: AppTooltips.toggleSidebar,
-                                onPressed: () {
-                                  if (inDrawer) {
-                                    _closeDrawerIfPossible(context);
-                                  } else {
-                                    ctrl.toggle();
-                                  }
-                                },
-                                icon: Icon(
-                                  openTarget
-                                      ? Icons.chevron_left
-                                      : Icons.chevron_right,
+                    // When very short, make the entire sidebar scrollable
+                    child:
+                        isVeryShort
+                            ? SingleChildScrollView(
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minHeight: minFixedHeight,
                                 ),
-                              ),
-                              if (showLabel)
-                                Expanded(
-                                  child: Text(
-                                    AppStrings.chats,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    softWrap: false,
-                                    style: theme.textTheme.titleMedium,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                        const Divider(height: 1),
-
-                        // Fixed items: New Chat, Search
-                        Padding(
-                          padding: EdgeInsets.symmetric(vertical: itemSpacing),
-                          child: Column(
-                            children: [
-                              Obx(() {
-                                // Check if current session is empty (new chat active)
-                                final isNewChatActive =
-                                    chat.currentSessionEmpty;
-                                return SidebarEntry(
-                                  icon: Icons.add_comment_outlined,
-                                  selectedIcon: Icons.add_comment_rounded,
-                                  label: AppStrings.newChat,
-                                  open: openTarget,
-                                  isSelected: isNewChatActive,
-                                  onTap: () {
-                                    final started = chat.newChat();
-                                    if (inDrawer) {
-                                      _closeDrawerIfPossible(context);
-                                    }
-                                    if (started) {
-                                      Get.snackbar(
-                                        AppStrings.newChat,
-                                        AppStrings.newChatCleared,
-                                        snackPosition: SnackPosition.TOP,
-                                        margin: const EdgeInsets.all(12),
-                                      );
-                                    }
-                                  },
-                                );
-                              }),
-                              SidebarEntry(
-                                icon: Icons.search_rounded,
-                                label: AppStrings.searchChatsHint,
-                                open: openTarget,
-                                onTap: () async {
-                                  final result = await showDialog(
-                                    context: context,
-                                    builder: (_) => const SearchChatsDialog(),
-                                  );
-                                  if (inDrawer && result != null) {
-                                    _closeDrawerIfPossible(
-                                      exampleContext.mounted
-                                          ? exampleContext
-                                          : context,
-                                    );
-                                  }
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        Divider(height: dividerSpacing),
-
-                        SidebarEntry(
-                          icon: Icons.work_outline_rounded,
-                          label: AppStrings.projects,
-                          open: openTarget,
-                          onTap: () {},
-                        ),
-
-                        SidebarEntry(
-                          icon: Icons.folder_outlined,
-                          label: AppStrings.library,
-                          open: openTarget,
-                          onTap: () async {
-                            final result = await showDialog(
-                              context: context,
-                              builder: (_) => const LibraryDialog(),
-                            );
-                            if (inDrawer && result != null) {
-                              _closeDrawerIfPossible(
-                                exampleContext.mounted
-                                    ? exampleContext
-                                    : context,
-                              );
-                            }
-                          },
-                        ),
-
-                        Divider(height: dividerSpacing),
-
-                        Expanded(
-                          child: Obx(() {
-                            final _ = chat.currentIndexRx.value;
-                            final indices = chat.nonEmptySessionIndices;
-
-                            // Separate favorites and non-favorites
-                            final favoriteIndices =
-                                indices
-                                    .where((i) => chat.isFavorite(i))
-                                    .toList()
-                                    .reversed
-                                    .toList();
-                            final regularIndices =
-                                indices
-                                    .where((i) => !chat.isFavorite(i))
-                                    .toList()
-                                    .reversed
-                                    .toList();
-
-                            if (!openTarget || indices.isEmpty) {
-                              return openTarget
-                                  ? Align(
-                                    alignment: Alignment.topLeft,
-                                    child: Padding(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 1.6
-                                            .cw(context)
-                                            .clamp(12.0, 16.0),
-                                        vertical: 0.8
-                                            .ch(context)
-                                            .clamp(6.0, 8.0),
-                                      ),
-                                      child: Text(
-                                        AppStrings.noChatsYet,
-                                        style: theme.textTheme.labelLarge,
-                                      ),
-                                    ),
-                                  )
-                                  : const SizedBox.shrink();
-                            }
-
-                            return ListView(
-                              padding: EdgeInsets.symmetric(
-                                vertical: itemSpacing,
-                              ),
-                              children: [
-                                // Favorites section (only if there are favorites)
-                                if (favoriteIndices.isNotEmpty) ...[
-                                  sectionHeader(AppStrings.favorites),
-                                  ...favoriteIndices.map((realIndex) {
-                                    final label = chat.titleFor(realIndex);
-                                    final logos =
-                                        chat
-                                            .modelHistoryRxFor(realIndex)
-                                            .map(
-                                              (id) =>
-                                                  AppModels.meta(id).logoUrl,
-                                            )
-                                            .toList();
-                                    return SidebarHistoryItem(
-                                      open: openTarget,
-                                      label: label,
-                                      logos: logos,
-                                      isSelected:
-                                          realIndex == chat.currentIndex,
-                                      isFavorite: true,
-                                      onTap: () {
-                                        chat.selectSession(realIndex);
-                                        if (inDrawer) {
-                                          _closeDrawerIfPossible(context);
-                                        }
-                                      },
-                                      onRename:
-                                          (value) => chat.renameSession(
-                                            realIndex,
-                                            value,
-                                          ),
-                                      onToggleFavorite:
-                                          () => chat.toggleFavorite(realIndex),
-                                      onDelete:
-                                          () => _confirmDelete(
-                                            context,
-                                            chat,
-                                            realIndex,
-                                            label,
-                                          ),
-                                    );
-                                  }),
-                                ],
-                                // History section (only if there are non-favorite chats)
-                                if (regularIndices.isNotEmpty) ...[
-                                  sectionHeader(AppStrings.history),
-                                  ...regularIndices.map((realIndex) {
-                                    final label = chat.titleFor(realIndex);
-                                    final logos =
-                                        chat
-                                            .modelHistoryRxFor(realIndex)
-                                            .map(
-                                              (id) =>
-                                                  AppModels.meta(id).logoUrl,
-                                            )
-                                            .toList();
-                                    return SidebarHistoryItem(
-                                      open: openTarget,
-                                      label: label,
-                                      logos: logos,
-                                      isSelected:
-                                          realIndex == chat.currentIndex,
-                                      isFavorite: false,
-                                      onTap: () {
-                                        chat.selectSession(realIndex);
-                                        if (inDrawer) {
-                                          _closeDrawerIfPossible(context);
-                                        }
-                                      },
-                                      onRename:
-                                          (value) => chat.renameSession(
-                                            realIndex,
-                                            value,
-                                          ),
-                                      onToggleFavorite:
-                                          () => chat.toggleFavorite(realIndex),
-                                      onDelete:
-                                          () => _confirmDelete(
-                                            context,
-                                            chat,
-                                            realIndex,
-                                            label,
-                                          ),
-                                    );
-                                  }),
-                                ],
-                              ],
-                            );
-                          }),
-                        ),
-
-                        const Divider(height: 1),
-                        Container(
-                          height: bottomRowHeight,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: bottomRowPadH,
-                            vertical: bottomRowPadV,
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: UserMenuButton(
+                                child: _buildSidebarContent(
+                                  context: context,
+                                  theme: theme,
+                                  chat: chat,
+                                  ctrl: ctrl,
                                   openTarget: openTarget,
-                                  avatarSize: avatarSize,
-                                  userNameGap: userNameGap,
+                                  showLabel: showLabel,
+                                  headerHeight: headerHeight,
+                                  headerPaddingH: headerPaddingH,
+                                  dividerSpacing: dividerSpacing,
+                                  itemSpacing: itemSpacing,
+                                  sectionHeader: sectionHeader,
+                                  bottomRowHeight: bottomRowHeight,
                                   bottomRowPadH: bottomRowPadH,
                                   bottomRowPadV: bottomRowPadV,
+                                  avatarSize: avatarSize,
+                                  userNameGap: userNameGap,
+                                  bottomItemGap: bottomItemGap,
+                                  exampleContext: exampleContext,
+                                  isScrollable: true,
                                 ),
                               ),
-                              SizedBox(width: bottomItemGap),
-                              // Settings button
-                              Tooltip(
-                                message: AppTooltips.settings,
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    onTap: () {
-                                      // Open settings
-                                    },
-                                    borderRadius: BorderRadius.circular(10),
-                                    child: Container(
-                                      padding: EdgeInsets.all(
-                                        bottomRowPadV * 0.8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(
-                                          color: theme.dividerColor,
-                                        ),
-                                      ),
-                                      child: Icon(
-                                        Icons.settings_outlined,
-                                        size: avatarSize * 0.7,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                            )
+                            : _buildSidebarContent(
+                              context: context,
+                              theme: theme,
+                              chat: chat,
+                              ctrl: ctrl,
+                              openTarget: openTarget,
+                              showLabel: showLabel,
+                              headerHeight: headerHeight,
+                              headerPaddingH: headerPaddingH,
+                              dividerSpacing: dividerSpacing,
+                              itemSpacing: itemSpacing,
+                              sectionHeader: sectionHeader,
+                              bottomRowHeight: bottomRowHeight,
+                              bottomRowPadH: bottomRowPadH,
+                              bottomRowPadV: bottomRowPadV,
+                              avatarSize: avatarSize,
+                              userNameGap: userNameGap,
+                              bottomItemGap: bottomItemGap,
+                              exampleContext: exampleContext,
+                              isScrollable: false,
+                            ),
                   ),
                 ),
               ),
             ),
           );
         },
+      );
+    });
+  }
+
+  Widget _buildSidebarContent({
+    required BuildContext context,
+    required ThemeData theme,
+    required ChatController chat,
+    required SidebarController ctrl,
+    required bool openTarget,
+    required bool showLabel,
+    required double headerHeight,
+    required double headerPaddingH,
+    required double dividerSpacing,
+    required double itemSpacing,
+    required Widget Function(String) sectionHeader,
+    required double bottomRowHeight,
+    required double bottomRowPadH,
+    required double bottomRowPadV,
+    required double avatarSize,
+    required double userNameGap,
+    required double bottomItemGap,
+    required BuildContext exampleContext,
+    required bool isScrollable,
+  }) {
+    return Column(
+      children: [
+        // ===== FIXED TOP SECTION =====
+        // Header row
+        Container(
+          height: headerHeight,
+          padding: EdgeInsets.symmetric(horizontal: headerPaddingH),
+          child: Row(
+            children: [
+              IconButton(
+                tooltip: AppTooltips.toggleSidebar,
+                onPressed: () {
+                  if (inDrawer) {
+                    _closeDrawerIfPossible(context);
+                  } else {
+                    ctrl.toggle();
+                  }
+                },
+                icon: Icon(
+                  openTarget ? Icons.chevron_left : Icons.chevron_right,
+                ),
+              ),
+              if (showLabel)
+                Expanded(
+                  child: Text(
+                    AppStrings.chats,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+
+        // Fixed items: New Chat, Search
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: itemSpacing),
+          child: Column(
+            children: [
+              Obx(() {
+                final isNewChatActive = chat.currentSessionEmpty;
+                return SidebarEntry(
+                  icon: Icons.add_comment_outlined,
+                  selectedIcon: Icons.add_comment_rounded,
+                  label: AppStrings.newChat,
+                  open: openTarget,
+                  isSelected: isNewChatActive,
+                  onTap: () {
+                    final started = chat.newChat();
+                    if (inDrawer) {
+                      _closeDrawerIfPossible(context);
+                    }
+                    if (started) {
+                      Get.snackbar(
+                        AppStrings.newChat,
+                        AppStrings.newChatCleared,
+                        snackPosition: SnackPosition.TOP,
+                        margin: const EdgeInsets.all(12),
+                      );
+                    }
+                  },
+                );
+              }),
+              SidebarEntry(
+                icon: Icons.search_rounded,
+                label: AppStrings.searchChatsHint,
+                open: openTarget,
+                onTap: () async {
+                  final result = await showDialog(
+                    context: context,
+                    builder: (_) => const SearchChatsDialog(),
+                  );
+                  if (inDrawer && result != null) {
+                    _closeDrawerIfPossible(
+                      exampleContext.mounted ? exampleContext : context,
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+
+        Divider(height: dividerSpacing),
+
+        SidebarEntry(
+          icon: Icons.work_outline_rounded,
+          label: AppStrings.projects,
+          open: openTarget,
+          onTap: () {},
+        ),
+
+        SidebarEntry(
+          icon: Icons.folder_outlined,
+          label: AppStrings.library,
+          open: openTarget,
+          onTap: () async {
+            final result = await showDialog(
+              context: context,
+              builder: (_) => const LibraryDialog(),
+            );
+            if (inDrawer && result != null) {
+              _closeDrawerIfPossible(
+                exampleContext.mounted ? exampleContext : context,
+              );
+            }
+          },
+        ),
+
+        Divider(height: dividerSpacing),
+
+        // History section - use Expanded only when not in scrollable mode
+        if (isScrollable)
+          SizedBox(
+            height: 150, // Minimum height for history in scrollable mode
+            child: _buildHistoryList(
+              context: context,
+              theme: theme,
+              chat: chat,
+              openTarget: openTarget,
+              itemSpacing: itemSpacing,
+              sectionHeader: sectionHeader,
+            ),
+          )
+        else
+          Expanded(
+            child: _buildHistoryList(
+              context: context,
+              theme: theme,
+              chat: chat,
+              openTarget: openTarget,
+              itemSpacing: itemSpacing,
+              sectionHeader: sectionHeader,
+            ),
+          ),
+
+        const Divider(height: 1),
+        Container(
+          height: bottomRowHeight,
+          padding: EdgeInsets.symmetric(
+            horizontal: bottomRowPadH,
+            vertical: bottomRowPadV,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: UserMenuButton(
+                  openTarget: openTarget,
+                  avatarSize: avatarSize,
+                  userNameGap: userNameGap,
+                  bottomRowPadH: bottomRowPadH,
+                  bottomRowPadV: bottomRowPadV,
+                ),
+              ),
+              SizedBox(width: bottomItemGap),
+              Tooltip(
+                message: AppTooltips.settings,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {},
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: EdgeInsets.all(bottomRowPadV * 0.8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: theme.dividerColor),
+                      ),
+                      child: Icon(
+                        Icons.settings_outlined,
+                        size: avatarSize * 0.7,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHistoryList({
+    required BuildContext context,
+    required ThemeData theme,
+    required ChatController chat,
+    required bool openTarget,
+    required double itemSpacing,
+    required Widget Function(String) sectionHeader,
+  }) {
+    return Obx(() {
+      final _ = chat.currentIndexRx.value;
+      final indices = chat.nonEmptySessionIndices;
+
+      final favoriteIndices =
+          indices.where((i) => chat.isFavorite(i)).toList().reversed.toList();
+      final regularIndices =
+          indices.where((i) => !chat.isFavorite(i)).toList().reversed.toList();
+
+      if (!openTarget || indices.isEmpty) {
+        return openTarget
+            ? Align(
+              alignment: Alignment.topLeft,
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 1.6.cw(context).clamp(12.0, 16.0),
+                  vertical: 0.8.ch(context).clamp(6.0, 8.0),
+                ),
+                child: Text(
+                  AppStrings.noChatsYet,
+                  style: theme.textTheme.labelLarge,
+                ),
+              ),
+            )
+            : const SizedBox.shrink();
+      }
+
+      return ListView(
+        padding: EdgeInsets.symmetric(vertical: itemSpacing),
+        children: [
+          if (favoriteIndices.isNotEmpty) ...[
+            sectionHeader(AppStrings.favorites),
+            ...favoriteIndices.map((realIndex) {
+              final label = chat.titleFor(realIndex);
+              final logos =
+                  chat
+                      .modelHistoryRxFor(realIndex)
+                      .map((id) => AppModels.meta(id).logoUrl)
+                      .toList();
+              return SidebarHistoryItem(
+                open: openTarget,
+                label: label,
+                logos: logos,
+                isSelected: realIndex == chat.currentIndex,
+                isFavorite: true,
+                onTap: () {
+                  chat.selectSession(realIndex);
+                  if (inDrawer) {
+                    _closeDrawerIfPossible(context);
+                  }
+                },
+                onRename: (value) => chat.renameSession(realIndex, value),
+                onToggleFavorite: () => chat.toggleFavorite(realIndex),
+                onDelete: () => _confirmDelete(context, chat, realIndex, label),
+              );
+            }),
+          ],
+          if (regularIndices.isNotEmpty) ...[
+            sectionHeader(AppStrings.history),
+            ...regularIndices.map((realIndex) {
+              final label = chat.titleFor(realIndex);
+              final logos =
+                  chat
+                      .modelHistoryRxFor(realIndex)
+                      .map((id) => AppModels.meta(id).logoUrl)
+                      .toList();
+              return SidebarHistoryItem(
+                open: openTarget,
+                label: label,
+                logos: logos,
+                isSelected: realIndex == chat.currentIndex,
+                isFavorite: false,
+                onTap: () {
+                  chat.selectSession(realIndex);
+                  if (inDrawer) {
+                    _closeDrawerIfPossible(context);
+                  }
+                },
+                onRename: (value) => chat.renameSession(realIndex, value),
+                onToggleFavorite: () => chat.toggleFavorite(realIndex),
+                onDelete: () => _confirmDelete(context, chat, realIndex, label),
+              );
+            }),
+          ],
+        ],
       );
     });
   }

@@ -83,7 +83,7 @@ class _AuthPageState extends State<AuthPage>
     _welcomeText = AppStrings.authWelcome;
     _welcomeShown = '';
     _welcomeTimer?.cancel();
-    _welcomeTimer = Timer.periodic(const Duration(milliseconds: 60), (t) {
+    _welcomeTimer = Timer.periodic(const Duration(milliseconds: 20), (t) {
       if (!mounted) return;
       if (_welcomeShown.length >= _welcomeText.length) {
         t.cancel();
@@ -240,7 +240,7 @@ class _AuthPageState extends State<AuthPage>
         ),
         SizedBox(height: 1.h.clamp(8, 14)),
         SizedBox(
-          height: 2.4.h.clamp(20, 32),
+          height: 2.8.h.clamp(20, 32),
           child:
               showWelcome
                   ? Text(

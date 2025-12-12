@@ -261,6 +261,7 @@ class _InputBarState extends State<InputBar> {
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min, // Add this to prevent expansion
           children: [
             if (_attachments.isNotEmpty)
               Padding(
@@ -299,7 +300,6 @@ class _InputBarState extends State<InputBar> {
             Obx(() {
               final streaming = _chat.isStreaming.value;
               final model = AppModels.meta(_chat.currentModelId);
-              // Capability flags for buttons
               final caps = model.caps;
               final supportsReasoning = caps.contains(
                 ModelCapability.reasoning,
@@ -317,12 +317,10 @@ class _InputBarState extends State<InputBar> {
                       ? AppTooltips.supportedThink
                       : AppTooltips.notSupportedThink;
 
-              // Visual state follows effective thinking capability (from controller)
               final thinkingEnabled = _chat.currentThinkingEnabledRx.value;
               final bool isThinkingActive =
                   supportsReasoning && thinkingEnabled;
 
-              // Centralized send availability
               final bool anyUploading = _attachments.any((a) => a.uploading);
               final bool canSend = !streaming && !anyUploading && _hasText;
 
@@ -346,56 +344,60 @@ class _InputBarState extends State<InputBar> {
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Prompt TextField (no border)
-                        Focus(
-                          onKeyEvent: (node, event) {
-                            if (event is KeyDownEvent &&
-                                event.logicalKey == LogicalKeyboardKey.enter) {
-                              final isShift =
-                                  HardwareKeyboard.instance.isShiftPressed;
-                              if (!isShift) {
-                                if (canSend) {
-                                  _onSend();
-                                  return KeyEventResult
-                                      .handled; // prevent newline
+                        // Prompt TextField - make it flexible
+                        ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxHeight: MediaQuery.of(context).size.height * 0.3,
+                          ),
+                          child: Focus(
+                            onKeyEvent: (node, event) {
+                              if (event is KeyDownEvent &&
+                                  event.logicalKey ==
+                                      LogicalKeyboardKey.enter) {
+                                final isShift =
+                                    HardwareKeyboard.instance.isShiftPressed;
+                                if (!isShift) {
+                                  if (canSend) {
+                                    _onSend();
+                                    return KeyEventResult.handled;
+                                  }
+                                  return KeyEventResult.ignored;
                                 }
-                                // If cannot send (uploading), allow newline
-                                return KeyEventResult.ignored;
                               }
-                            }
-                            return KeyEventResult.ignored;
-                          },
-                          child: TextField(
-                            controller: _controller,
-                            minLines: 1,
-                            maxLines: 6,
-                            textInputAction: TextInputAction.newline,
-                            style: theme.textTheme.bodyLarge,
-                            decoration: InputDecoration(
-                              hintText: AppStrings.inputHint,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 0,
-                                vertical: textFieldVPad,
+                              return KeyEventResult.ignored;
+                            },
+                            child: TextField(
+                              controller: _controller,
+                              minLines: 1,
+                              maxLines: 6,
+                              textInputAction: TextInputAction.newline,
+                              style: theme.textTheme.bodyLarge,
+                              decoration: InputDecoration(
+                                hintText: AppStrings.inputHint,
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 0,
+                                  vertical: textFieldVPad,
+                                ),
+                                filled: false,
+                                fillColor: Colors.transparent,
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                disabledBorder: InputBorder.none,
                               ),
-                              filled: false,
-                              fillColor: Colors.transparent,
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              disabledBorder: InputBorder.none,
+                              onSubmitted: (_) {
+                                if (canSend) _onSend();
+                              }, // for soft keyboards
                             ),
-                            onSubmitted: (_) {
-                              if (canSend) _onSend();
-                            }, // for soft keyboards
                           ),
                         ),
                         SizedBox(height: blockSpacing),
-                        // Tools row (narrow-aware)
+                        // Tools row - wrap in SingleChildScrollView for very narrow/short screens
                         LayoutBuilder(
                           builder: (ctx, cons) {
                             final bool isNarrow = cons.maxWidth < 700;
+                            final bool isVeryNarrow = cons.maxWidth < 400;
 
-                            // Calculate safe width to prevent overflow on narrow screens
                             final double fixedItemsWidth = 200.0;
                             final double safeWidth = (cons.maxWidth -
                                     fixedItemsWidth)
@@ -418,224 +420,69 @@ class _InputBarState extends State<InputBar> {
                                 .ch(context)
                                 .clamp(4.0, 8.0);
 
-                            return Row(
-                              children: [
-                                // Model selector button (wraps content, capped by maxWidth)
-                                ConstrainedBox(
-                                  constraints: BoxConstraints(maxWidth: btnMax),
-                                  child: OutlinedButton(
-                                    onPressed: _pickModel,
-                                    style: OutlinedButton.styleFrom(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: btnPadH,
-                                        vertical: btnPadV,
-                                      ),
-                                      side: BorderSide(
-                                        color: theme.dividerColor,
-                                      ),
-                                      tapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            999,
-                                          ),
-                                          child: SizedBox(
-                                            width: 18,
-                                            height: 18,
-                                            child: SvgPicture.asset(
-                                              model.logoUrl,
-                                              key: ValueKey(model.logoUrl),
-                                              fit: BoxFit.contain,
-                                              placeholderBuilder:
-                                                  (_) => const Icon(
-                                                    Icons.auto_awesome,
-                                                    size: 16,
-                                                  ),
-                                            ),
-                                          ),
-                                        ),
-                                        SizedBox(width: modelLabelGap),
-                                        // Label flexes inside max width, otherwise wraps to content
-                                        Flexible(
-                                          fit: FlexFit.loose,
-                                          child: Text(
-                                            model.name,
-                                            style: theme.textTheme.bodyMedium,
-                                            overflow: TextOverflow.ellipsis,
-                                            softWrap: false,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        const Icon(
-                                          Icons.keyboard_arrow_down_rounded,
-                                          size: 18,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                            // For very narrow screens, use a more compact layout
+                            if (isVeryNarrow) {
+                              return SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: _buildToolsRow(
+                                  theme: theme,
+                                  streaming: streaming,
+                                  model: model,
+                                  supportsReasoning: supportsReasoning,
+                                  supportsFiles: supportsFiles,
+                                  supportsAudio: supportsAudio,
+                                  fileTooltip: fileTooltip,
+                                  micTooltip: micTooltip,
+                                  thinkTooltip: thinkTooltip,
+                                  isThinkingActive: isThinkingActive,
+                                  canSend: canSend,
+                                  isNarrow: true,
+                                  btnMax: btnMax,
+                                  btnPadH: btnPadH,
+                                  btnPadV: btnPadV,
+                                  modelLabelGap: modelLabelGap,
+                                  dividerGap: dividerGap,
+                                  thinkGap: thinkGap,
+                                  thinkPadVert: thinkPadVert,
+                                  thinkPadNarrow: thinkPadNarrow,
+                                  thinkPadWide: thinkPadWide,
                                 ),
-                                SizedBox(width: dividerGap),
-                                // Divider
-                                Container(
-                                  width: 1,
-                                  height: 24,
-                                  color: theme.dividerColor,
-                                ),
-                                SizedBox(width: dividerGap),
-                                // File Attachment
-                                Tooltip(
-                                  message: fileTooltip,
-                                  child: IconButton(
-                                    onPressed:
-                                        (streaming || !supportsFiles)
-                                            ? null
-                                            : _addAttachment,
-                                    icon: const Icon(Icons.attach_file_rounded),
-                                  ),
-                                ),
-                                // Mic
-                                Tooltip(
-                                  message: micTooltip,
-                                  child: IconButton(
-                                    onPressed:
-                                        (streaming || !supportsAudio)
-                                            ? null
-                                            : () {},
-                                    icon: const Icon(Icons.mic_none_rounded),
-                                  ),
-                                ),
-                                const Spacer(),
-                                if (!streaming) ...[
-                                  // Think: icon-only in narrow, labeled in wide
-                                  if (isNarrow)
-                                    Tooltip(
-                                      message: thinkTooltip,
-                                      child: FilledButton(
-                                        onPressed:
-                                            supportsReasoning
-                                                ? _chat.toggleCurrentThinking
-                                                : null,
-                                        style: FilledButton.styleFrom(
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: thinkPadNarrow,
-                                            vertical: thinkPadVert,
-                                          ),
-                                          // Color reflects only when supported
-                                          backgroundColor:
-                                              isThinkingActive
-                                                  ? theme.colorScheme.primary
-                                                  : theme.colorScheme.primary
-                                                      .withValues(alpha: 0.12),
-                                          foregroundColor:
-                                              isThinkingActive
-                                                  ? theme.colorScheme.onPrimary
-                                                  : theme.colorScheme.primary,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              10,
-                                            ),
-                                          ),
-                                          minimumSize: const Size(40, 36),
-                                        ),
-                                        child: const Icon(
-                                          Icons.psychology_rounded,
-                                          size: 18,
-                                        ),
-                                      ),
-                                    )
-                                  else
-                                    Tooltip(
-                                      message: thinkTooltip,
-                                      child: FilledButton.icon(
-                                        onPressed:
-                                            supportsReasoning
-                                                ? _chat.toggleCurrentThinking
-                                                : null,
-                                        icon: const Icon(
-                                          Icons.psychology_rounded,
-                                          size: 18,
-                                        ),
-                                        label: const Text(
-                                          AppStrings.reasoningText,
-                                        ),
-                                        style: FilledButton.styleFrom(
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: thinkPadWide,
-                                            vertical: thinkPadVert,
-                                          ),
-                                          // Color reflects only when supported
-                                          backgroundColor:
-                                              isThinkingActive
-                                                  ? theme.colorScheme.primary
-                                                  : theme.colorScheme.primary
-                                                      .withValues(alpha: 0.12),
-                                          foregroundColor:
-                                              isThinkingActive
-                                                  ? theme.colorScheme.onPrimary
-                                                  : theme.colorScheme.primary,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              10,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  SizedBox(width: thinkGap),
-                                  // Send button in a soft container
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      color: theme.colorScheme.primary
-                                          .withValues(alpha: 0.10),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: IconButton(
-                                      tooltip: AppTooltips.send,
-                                      onPressed: canSend ? _onSend : null,
-                                      icon: Icon(
-                                        Icons.send_rounded,
-                                        color:
-                                            canSend
-                                                ? theme.colorScheme.primary
-                                                : theme.disabledColor,
-                                      ),
-                                    ),
-                                  ),
-                                ] else ...[
-                                  // Streaming: same container, icon-only stop
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      color: theme.colorScheme.primary
-                                          .withValues(alpha: 0.10),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: IconButton(
-                                      tooltip: AppTooltips.stop,
-                                      onPressed: _chat.cancelStream,
-                                      icon: Icon(
-                                        Icons.stop_circle_rounded,
-                                        color: theme.colorScheme.primary,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
+                              );
+                            }
+
+                            return _buildToolsRow(
+                              theme: theme,
+                              streaming: streaming,
+                              model: model,
+                              supportsReasoning: supportsReasoning,
+                              supportsFiles: supportsFiles,
+                              supportsAudio: supportsAudio,
+                              fileTooltip: fileTooltip,
+                              micTooltip: micTooltip,
+                              thinkTooltip: thinkTooltip,
+                              isThinkingActive: isThinkingActive,
+                              canSend: canSend,
+                              isNarrow: isNarrow,
+                              btnMax: btnMax,
+                              btnPadH: btnPadH,
+                              btnPadV: btnPadV,
+                              modelLabelGap: modelLabelGap,
+                              dividerGap: dividerGap,
+                              thinkGap: thinkGap,
+                              thinkPadVert: thinkPadVert,
+                              thinkPadNarrow: thinkPadNarrow,
+                              thinkPadWide: thinkPadWide,
                             );
                           },
                         ),
                       ],
                     ),
-                    // Full-size overlay that captures drag/drop only when files are supported
+                    // Drop overlay
                     if (supportsFiles)
                       Positioned.fill(
                         child: DropOverlay(
                           onHover: () => setState(() => _dropping = true),
                           onLeave: () {
-                            // If still uploading keep overlay, otherwise hide
                             if (!_attachments.any((a) => a.uploading)) {
                               setState(() => _dropping = false);
                             }
@@ -643,7 +490,6 @@ class _InputBarState extends State<InputBar> {
                           onDrop: _handleDropNames,
                         ),
                       ),
-                    // Visual overlay with dashed border and info (only when supported)
                     if (supportsFiles && _dropping)
                       Positioned.fill(
                         child: ContentDropzone(
@@ -657,6 +503,192 @@ class _InputBarState extends State<InputBar> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildToolsRow({
+    required ThemeData theme,
+    required bool streaming,
+    required ModelMeta model,
+    required bool supportsReasoning,
+    required bool supportsFiles,
+    required bool supportsAudio,
+    required String fileTooltip,
+    required String micTooltip,
+    required String thinkTooltip,
+    required bool isThinkingActive,
+    required bool canSend,
+    required bool isNarrow,
+    required double btnMax,
+    required double btnPadH,
+    required double btnPadV,
+    required double modelLabelGap,
+    required double dividerGap,
+    required double thinkGap,
+    required double thinkPadVert,
+    required double thinkPadNarrow,
+    required double thinkPadWide,
+  }) {
+    return Row(
+      children: [
+        // Model selector button
+        ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: btnMax),
+          child: OutlinedButton(
+            onPressed: _pickModel,
+            style: OutlinedButton.styleFrom(
+              padding: EdgeInsets.symmetric(
+                horizontal: btnPadH,
+                vertical: btnPadV,
+              ),
+              side: BorderSide(color: theme.dividerColor),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: SvgPicture.asset(
+                      model.logoUrl,
+                      key: ValueKey(model.logoUrl),
+                      fit: BoxFit.contain,
+                      placeholderBuilder:
+                          (_) => const Icon(Icons.auto_awesome, size: 16),
+                    ),
+                  ),
+                ),
+                SizedBox(width: modelLabelGap),
+                Flexible(
+                  fit: FlexFit.loose,
+                  child: Text(
+                    model.name,
+                    style: theme.textTheme.bodyMedium,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
+              ],
+            ),
+          ),
+        ),
+        SizedBox(width: dividerGap),
+        // Divider
+        Container(width: 1, height: 24, color: theme.dividerColor),
+        SizedBox(width: dividerGap),
+        // File Attachment
+        Tooltip(
+          message: fileTooltip,
+          child: IconButton(
+            onPressed: (streaming || !supportsFiles) ? null : _addAttachment,
+            icon: const Icon(Icons.attach_file_rounded),
+          ),
+        ),
+        // Mic
+        Tooltip(
+          message: micTooltip,
+          child: IconButton(
+            onPressed: (streaming || !supportsAudio) ? null : () {},
+            icon: const Icon(Icons.mic_none_rounded),
+          ),
+        ),
+        const Spacer(),
+        if (!streaming) ...[
+          // Think button
+          if (isNarrow)
+            Tooltip(
+              message: thinkTooltip,
+              child: FilledButton(
+                onPressed:
+                    supportsReasoning ? _chat.toggleCurrentThinking : null,
+                style: FilledButton.styleFrom(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: thinkPadNarrow,
+                    vertical: thinkPadVert,
+                  ),
+                  backgroundColor:
+                      isThinkingActive
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.primary.withValues(alpha: 0.12),
+                  foregroundColor:
+                      isThinkingActive
+                          ? theme.colorScheme.onPrimary
+                          : theme.colorScheme.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  minimumSize: const Size(40, 36),
+                ),
+                child: const Icon(Icons.psychology_rounded, size: 18),
+              ),
+            )
+          else
+            Tooltip(
+              message: thinkTooltip,
+              child: FilledButton.icon(
+                onPressed:
+                    supportsReasoning ? _chat.toggleCurrentThinking : null,
+                icon: const Icon(Icons.psychology_rounded, size: 18),
+                label: const Text(AppStrings.reasoningText),
+                style: FilledButton.styleFrom(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: thinkPadWide,
+                    vertical: thinkPadVert,
+                  ),
+                  backgroundColor:
+                      isThinkingActive
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.primary.withValues(alpha: 0.12),
+                  foregroundColor:
+                      isThinkingActive
+                          ? theme.colorScheme.onPrimary
+                          : theme.colorScheme.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+          SizedBox(width: thinkGap),
+          // Send button
+          Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: IconButton(
+              tooltip: AppTooltips.send,
+              onPressed: canSend ? _onSend : null,
+              icon: Icon(
+                Icons.send_rounded,
+                color:
+                    canSend ? theme.colorScheme.primary : theme.disabledColor,
+              ),
+            ),
+          ),
+        ] else ...[
+          // Stop button
+          Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: IconButton(
+              tooltip: AppTooltips.stop,
+              onPressed: _chat.cancelStream,
+              icon: Icon(
+                Icons.stop_circle_rounded,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
