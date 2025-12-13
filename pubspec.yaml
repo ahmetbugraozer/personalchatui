@@ -44,6 +44,7 @@ flutter:
     - assets/claude-sonnet-4-5.svg
     - assets/claude-sonnet-4.svg
     - assets/deepseek-r1.svg
+    - assets/deepseek-v3-2.svg
     - assets/gemini-2-5-flash.svg
     - assets/gemini-2-5-pro.svg
     - assets/gpt-4-1.svg

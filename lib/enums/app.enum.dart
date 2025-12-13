@@ -337,6 +337,9 @@ extension PricingPlanX on PricingPlan {
 // Models catalog: vendors, capabilities, metadata and helpers
 enum ModelVendor { xai, anthropic, deepseek, google, openai, alibaba, meta }
 
+// Authentication views
+enum AuthView { login, register, forgotPassword }
+
 // Changed: imageInputs -> fileInputs. hybridReasoning removed previously.
 enum ModelCapability { reasoning, fileInputs, audioInputs, textInputs }
 
@@ -497,6 +500,14 @@ class AppModels {
       subtitle: 'Most advanced reasoning model',
       caps: const [ModelCapability.reasoning, ModelCapability.textInputs],
       logoUrl: 'assets/deepseek-r1.svg',
+    ),
+    'deepseek/v3.2': ModelMeta(
+      id: 'deepseek/v3.2',
+      vendor: ModelVendor.deepseek,
+      name: 'DeepSeek v3.2',
+      subtitle: 'Most advanced chat model',
+      caps: const [ModelCapability.fileInputs, ModelCapability.textInputs],
+      logoUrl: 'assets/deepseek-v3-2.svg',
     ),
     // Google
     'google/gemini-2.5-pro': ModelMeta(
