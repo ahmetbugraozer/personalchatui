@@ -33,6 +33,8 @@ class DialogScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      clipBehavior:
+          Clip.antiAlias, // <- prevent any painting outside dialog shape
       insetPadding: EdgeInsets.symmetric(
         horizontal: 4.w.clamp(12, 32),
         vertical: 3.h.clamp(16, 36),

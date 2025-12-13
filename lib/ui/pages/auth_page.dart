@@ -9,8 +9,6 @@ import '../../enums/app.enum.dart';
 import '../widgets/auth_card.dart';
 import '../widgets/social_login_buttons.dart';
 
-enum AuthView { login, register, forgotPassword }
-
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
 

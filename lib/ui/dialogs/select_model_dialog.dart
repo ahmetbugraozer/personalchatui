@@ -92,55 +92,109 @@ class _SelectModelDialogState extends State<SelectModelDialog> {
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Filter chips and search field with equal height
-          SizedBox(
-            height: dialogInputHeight(context),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Filter chips
-                Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
+          // Responsive filter chips and search field
+          LayoutBuilder(
+            builder: (context, constraints) {
+              const breakpoint = 500.0;
+              final isNarrow = constraints.maxWidth < breakpoint;
+
+              if (isNarrow) {
+                // Vertical layout: search bar on top, filter chips below
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Search field
+                    SizedBox(
+                      height: dialogInputHeight(context),
+                      child: TextField(
+                        controller: _searchCtrl,
+                        decoration: InputDecoration(
+                          hintText: AppStrings.searchModelsHint,
+                          prefixIcon: const Icon(Icons.search_rounded),
+                          contentPadding: dialogInputPadding(context),
+                          isDense: true,
+                        ),
+                        onChanged:
+                            (value) => setState(
+                              () => _query = value.trim().toLowerCase(),
+                            ),
+                      ),
+                    ),
+                    SizedBox(height: 0.8.h.clamp(6, 12)),
+                    // Filter chips wrapped
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
                       children:
                           ModelCapability.values.map((cap) {
                             final selected = _filters.contains(cap);
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: FilterChip(
-                                avatar: Icon(capIcon(cap), size: 16),
-                                label: Text(cap.label),
-                                selected: selected,
-                                onSelected: (_) => _toggleFilter(cap),
-                                materialTapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
-                                visualDensity: VisualDensity.compact,
-                              ),
+                            return FilterChip(
+                              avatar: Icon(capIcon(cap), size: 16),
+                              label: Text(cap.label),
+                              selected: selected,
+                              onSelected: (_) => _toggleFilter(cap),
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                              visualDensity: VisualDensity.compact,
                             );
                           }).toList(),
                     ),
+                  ],
+                );
+              } else {
+                // Horizontal layout: chips and search bar in same row
+                return SizedBox(
+                  height: dialogInputHeight(context),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Filter chips
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children:
+                                ModelCapability.values.map((cap) {
+                                  final selected = _filters.contains(cap);
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: FilterChip(
+                                      avatar: Icon(capIcon(cap), size: 16),
+                                      label: Text(cap.label),
+                                      selected: selected,
+                                      onSelected: (_) => _toggleFilter(cap),
+                                      materialTapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                  );
+                                }).toList(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Search field
+                      SizedBox(
+                        width: 220,
+                        child: TextField(
+                          controller: _searchCtrl,
+                          decoration: InputDecoration(
+                            hintText: AppStrings.searchModelsHint,
+                            prefixIcon: const Icon(Icons.search_rounded),
+                            contentPadding: dialogInputPadding(context),
+                            isDense: true,
+                          ),
+                          onChanged:
+                              (value) => setState(
+                                () => _query = value.trim().toLowerCase(),
+                              ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 12),
-                // Search field
-                SizedBox(
-                  width: 220,
-                  child: TextField(
-                    controller: _searchCtrl,
-                    decoration: InputDecoration(
-                      hintText: AppStrings.searchModelsHint,
-                      prefixIcon: const Icon(Icons.search_rounded),
-                      contentPadding: dialogInputPadding(context),
-                      isDense: true,
-                    ),
-                    onChanged:
-                        (value) =>
-                            setState(() => _query = value.trim().toLowerCase()),
-                  ),
-                ),
-              ],
-            ),
+                );
+              }
+            },
           ),
           SizedBox(height: 1.2.h.clamp(8, 16)),
           // Model list
@@ -158,7 +212,15 @@ class _SelectModelDialogState extends State<SelectModelDialog> {
                   ),
                 );
               }
-              return ListView(children: sections);
+
+              // IMPORTANT: Constrain ListTile/Ink painting to the scroll area only.
+              return Material(
+                type: MaterialType.transparency,
+                clipBehavior: Clip.hardEdge,
+                child: ClipRect(
+                  child: ListView(padding: EdgeInsets.zero, children: sections),
+                ),
+              );
             }),
           ),
         ],

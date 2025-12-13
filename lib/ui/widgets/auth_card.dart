@@ -13,36 +13,44 @@ class AuthCard extends StatelessWidget {
 
     return ConstrainedBox(
       constraints: BoxConstraints(maxWidth: 42.w.clamp(320, 420)),
-      child: AnimatedSize(
-        duration: const Duration(milliseconds: 350),
-        curve: Curves.easeOutCubic,
-        alignment: Alignment.topCenter,
-        child: Container(
-          padding: EdgeInsets.all(2.4.h.clamp(20, 32)),
-          decoration: BoxDecoration(
-            color: theme.cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: theme.dividerColor),
-            boxShadow: [
-              BoxShadow(
-                color: theme.colorScheme.shadow.withValues(alpha: 0.12),
-                blurRadius: 24,
-                offset: const Offset(0, 12),
+      child: DecoratedBox(
+        // Static shadow layer - won't repaint during size animation
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: theme.colorScheme.shadow.withValues(alpha: 0.12),
+              blurRadius: 24,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: RepaintBoundary(
+          child: AnimatedSize(
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: Container(
+              padding: EdgeInsets.all(2.4.h.clamp(20, 32)),
+              decoration: BoxDecoration(
+                color: theme.cardColor,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: theme.dividerColor),
               ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                title,
-                style: theme.textTheme.headlineSmall,
-                textAlign: TextAlign.center,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.headlineSmall,
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 2.4.h.clamp(18, 28)),
+                  child,
+                ],
               ),
-              SizedBox(height: 2.4.h.clamp(18, 28)),
-              child,
-            ],
+            ),
           ),
         ),
       ),
