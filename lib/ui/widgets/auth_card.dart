@@ -15,16 +15,7 @@ class AuthCard extends StatelessWidget {
       constraints: BoxConstraints(maxWidth: 42.w.clamp(320, 420)),
       child: DecoratedBox(
         // Static shadow layer - won't repaint during size animation
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: theme.colorScheme.shadow.withValues(alpha: 0.12),
-              blurRadius: 24,
-              offset: const Offset(0, 12),
-            ),
-          ],
-        ),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
         child: RepaintBoundary(
           child: AnimatedSize(
             duration: const Duration(milliseconds: 350),

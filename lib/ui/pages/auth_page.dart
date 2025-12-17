@@ -38,8 +38,6 @@ class _AuthPageState extends State<AuthPage>
 
   // Animation controller for card transitions
   late final AnimationController _animController;
-  late final Animation<double> _fadeAnimation;
-  late final Animation<double> _scaleAnimation;
 
   // Track if we're in forgot password loading state
   bool _isForgotPasswordLoading = false;
@@ -50,18 +48,9 @@ class _AuthPageState extends State<AuthPage>
     _startWelcomeAnimation();
 
     _animController = AnimationController(
-      duration: const Duration(milliseconds: 350),
+      duration: const Duration(milliseconds: 200),
       vsync: this,
     );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
-    );
-
-    _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
-    );
-
     _animController.value = 1.0;
   }
 
@@ -162,7 +151,7 @@ class _AuthPageState extends State<AuthPage>
                 vertical: 4.h.clamp(24, 48),
               ),
               child: AnimatedSize(
-                duration: const Duration(milliseconds: 400),
+                duration: const Duration(milliseconds: 300),
                 curve: Curves.easeOutCubic,
                 alignment: Alignment.topCenter,
                 child: Column(
@@ -177,21 +166,10 @@ class _AuthPageState extends State<AuthPage>
                           return const CircularProgressIndicator();
                         }
 
-                        return AnimatedBuilder(
-                          animation: _animController,
-                          builder: (context, child) {
-                            return FadeTransition(
-                              opacity: _fadeAnimation,
-                              child: ScaleTransition(
-                                scale: _scaleAnimation,
-                                child: ValueListenableBuilder<AuthView>(
-                                  valueListenable: _currentView,
-                                  builder: (context, view, _) {
-                                    return _buildCurrentView(theme, view);
-                                  },
-                                ),
-                              ),
-                            );
+                        return ValueListenableBuilder<AuthView>(
+                          valueListenable: _currentView,
+                          builder: (context, view, _) {
+                            return _buildCurrentView(theme, view);
                           },
                         );
                       },
