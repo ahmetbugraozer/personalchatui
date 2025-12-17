@@ -95,7 +95,7 @@ class _SelectModelDialogState extends State<SelectModelDialog> {
           // Responsive filter chips and search field
           LayoutBuilder(
             builder: (context, constraints) {
-              const breakpoint = 500.0;
+              const breakpoint = 800.0;
               final isNarrow = constraints.maxWidth < breakpoint;
 
               if (isNarrow) {
@@ -129,7 +129,7 @@ class _SelectModelDialogState extends State<SelectModelDialog> {
                           ModelCapability.values.map((cap) {
                             final selected = _filters.contains(cap);
                             return FilterChip(
-                              avatar: Icon(capIcon(cap), size: 16),
+                              avatar: Icon(capIcon(cap)),
                               label: Text(cap.label),
                               selected: selected,
                               onSelected: (_) => _toggleFilter(cap),
@@ -146,7 +146,6 @@ class _SelectModelDialogState extends State<SelectModelDialog> {
                 return SizedBox(
                   height: dialogInputHeight(context),
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // Filter chips
                       Expanded(
@@ -159,7 +158,7 @@ class _SelectModelDialogState extends State<SelectModelDialog> {
                                   return Padding(
                                     padding: const EdgeInsets.only(right: 8),
                                     child: FilterChip(
-                                      avatar: Icon(capIcon(cap), size: 16),
+                                      avatar: Icon(capIcon(cap)),
                                       label: Text(cap.label),
                                       selected: selected,
                                       onSelected: (_) => _toggleFilter(cap),
@@ -212,8 +211,6 @@ class _SelectModelDialogState extends State<SelectModelDialog> {
                   ),
                 );
               }
-
-              // IMPORTANT: Constrain ListTile/Ink painting to the scroll area only.
               return Material(
                 type: MaterialType.transparency,
                 clipBehavior: Clip.hardEdge,
