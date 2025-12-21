@@ -242,6 +242,15 @@ class AppTooltips {
   static const authLoginWithFacebook = 'Facebook ile giriş yap';
 }
 
+const logoUrls = {
+  'google':
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/48px-Google_%22G%22_logo.svg.png',
+  'apple':
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Apple_logo_dark_grey.svg/48px-Apple_logo_dark_grey.svg.png',
+  'facebook':
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/Facebook_Logo_2023.png/48px-Facebook_Logo_2023.png',
+};
+
 // Pricing enum + mapping
 enum PricingPlan { free, plus, business, pro }
 
