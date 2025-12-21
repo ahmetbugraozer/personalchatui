@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
-import '../../core/sizer/app_sizer.dart';
-import '../../enums/app.enum.dart';
-import '../../models/chat_message.dart';
+import '../../../core/sizer/app_sizer.dart';
+import '../../../enums/app.enum.dart';
+import '../../../models/chat_message.dart';
 import 'thinking_section.dart';
 
 class ResponseSection extends StatelessWidget {

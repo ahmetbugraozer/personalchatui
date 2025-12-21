@@ -6,8 +6,8 @@ import '../../core/sizer/app_sizer.dart';
 import '../../core/utils/validators.dart';
 import '../../controllers/theme_controller.dart';
 import '../../enums/app.enum.dart';
-import '../widgets/auth_card.dart';
-import '../widgets/social_login_buttons.dart';
+import '../widgets/auth/auth_card.dart';
+import '../widgets/auth/social_login_buttons.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});

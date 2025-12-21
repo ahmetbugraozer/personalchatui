@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../core/sizer/app_sizer.dart';
-import '../../enums/app.enum.dart';
+import '../../../core/sizer/app_sizer.dart';
+import '../../../enums/app.enum.dart';
 
 class SocialLoginButtons extends StatelessWidget {
   const SocialLoginButtons({super.key});

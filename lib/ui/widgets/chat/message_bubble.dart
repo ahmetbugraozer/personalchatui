@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import '../../core/sizer/app_sizer.dart';
-import '../../controllers/chat_controller.dart';
-import '../../enums/app.enum.dart';
-import '../../models/chat_message.dart';
+import '../../../core/sizer/app_sizer.dart';
+import '../../../controllers/chat_controller.dart';
+import '../../../enums/app.enum.dart';
+import '../../../models/chat_message.dart';
 import 'response_section.dart';
 
 class MessageBubble extends StatefulWidget {

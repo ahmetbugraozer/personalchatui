@@ -5,11 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../core/sizer/app_sizer.dart';
-import '../../controllers/chat_controller.dart';
-import '../../enums/app.enum.dart';
-import '../../models/chat_message.dart';
-import '../dialogs/select_model_dialog.dart';
+import '../../../core/sizer/app_sizer.dart';
+import '../../../controllers/chat_controller.dart';
+import '../../../enums/app.enum.dart';
+import '../../../models/chat_message.dart';
+import '../../dialogs/select_model_dialog.dart';
 import 'content_dropzone.dart';
 import 'drop_overlay.dart';
 

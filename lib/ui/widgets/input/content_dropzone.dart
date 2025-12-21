@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:personalchatui/ui/widgets/dashed_border_painter.dart';
-import '../../core/sizer/app_sizer.dart';
-import '../../enums/app.enum.dart';
+import 'package:personalchatui/ui/widgets/input/dashed_border_painter.dart';
+import '../../../core/sizer/app_sizer.dart';
+import '../../../enums/app.enum.dart';
 
 class ContentDropzone extends StatelessWidget {
   final bool uploading;

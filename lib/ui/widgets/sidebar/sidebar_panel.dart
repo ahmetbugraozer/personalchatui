@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:personalchatui/ui/widgets/section_header.dart';
-import '../../core/sizer/app_sizer.dart';
-import '../../controllers/chat_controller.dart';
-import '../../controllers/sidebar_controller.dart';
-import '../../enums/app.enum.dart';
-import '../dialogs/search_chats_dialog.dart';
-import '../dialogs/library_dialog.dart';
-import '../dialogs/confirmation_dialog.dart';
-import 'sidebar/sidebar_entry.dart';
-import 'sidebar/sidebar_history_item.dart';
+import '../../../core/sizer/app_sizer.dart';
+import '../../../controllers/chat_controller.dart';
+import '../../../controllers/sidebar_controller.dart';
+import '../../../enums/app.enum.dart';
+import '../../dialogs/search_chats_dialog.dart';
+import '../../dialogs/library_dialog.dart';
+import '../../dialogs/confirmation_dialog.dart';
+import 'sidebar_entry.dart';
+import 'section_header.dart';
+import 'sidebar_history_item.dart';
 import 'user_menu_button.dart';
 
 class SidebarPanel extends StatelessWidget {

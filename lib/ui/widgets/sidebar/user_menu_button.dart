@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../core/routes/app_routes.dart';
-import '../../enums/app.enum.dart';
-import '../dialogs/confirmation_dialog.dart';
-import '../dialogs/premium_dialog.dart';
+import '../../../core/routes/app_routes.dart';
+import '../../../enums/app.enum.dart';
+import '../../dialogs/confirmation_dialog.dart';
+import '../../dialogs/premium_dialog.dart';
 
 class UserMenuButton extends StatelessWidget {
   final bool openTarget;

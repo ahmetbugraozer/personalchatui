@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../core/sizer/app_sizer.dart';
-import '../../enums/app.enum.dart';
+import '../../../core/sizer/app_sizer.dart';
+import '../../../enums/app.enum.dart';
 
 class ThinkingSection extends StatefulWidget {
   final RxString thinkingText;

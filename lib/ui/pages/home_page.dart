@@ -5,8 +5,8 @@ import '../../core/sizer/app_sizer.dart';
 import '../../controllers/sidebar_controller.dart';
 import '../../controllers/theme_controller.dart';
 import '../../enums/app.enum.dart';
-import '../widgets/sidebar_panel.dart';
-import '../widgets/chat_area.dart';
+import '../widgets/sidebar/sidebar_panel.dart';
+import '../widgets/chat/chat_area.dart';
 import '../dialogs/premium_dialog.dart';
 
 class HomePage extends StatelessWidget {

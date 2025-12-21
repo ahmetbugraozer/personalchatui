@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../core/sizer/app_sizer.dart';
+import '../../../core/sizer/app_sizer.dart';
 import 'dart:async';
 
-import '../../controllers/chat_controller.dart';
-import '../../enums/app.enum.dart';
-import '../../models/chat_message.dart';
-import 'input_bar.dart';
+import '../../../controllers/chat_controller.dart';
+import '../../../enums/app.enum.dart';
+import '../../../models/chat_message.dart';
+import '../input/input_bar.dart';
 import 'message_bubble.dart';
 
 class ChatArea extends StatefulWidget {

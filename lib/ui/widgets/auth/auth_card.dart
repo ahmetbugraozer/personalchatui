@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/sizer/app_sizer.dart';
+import '../../../core/sizer/app_sizer.dart';
 
 class AuthCard extends StatelessWidget {
   final String title;
