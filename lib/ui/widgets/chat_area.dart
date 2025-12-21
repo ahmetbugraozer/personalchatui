@@ -234,6 +234,16 @@ class _ChatAreaState extends State<ChatArea> {
                                                     .bodyMedium
                                                     ?.color
                                                     ?.withValues(alpha: 0.7),
+                                                shadows: [
+                                                  Shadow(
+                                                    blurRadius: 6,
+                                                    color: theme
+                                                        .colorScheme
+                                                        .primary
+                                                        .withValues(alpha: 0.6),
+                                                    offset: const Offset(0, 0),
+                                                  ),
+                                                ],
                                               ),
                                         ),
                                       ),

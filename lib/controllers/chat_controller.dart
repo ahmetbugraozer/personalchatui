@@ -125,10 +125,19 @@ class ChatController extends GetxController {
   void requestComposerClear() => composerClearSignal.value++;
 
   final ChatService _service = ChatService();
-  StreamSubscription<String>? _sub;
+  StreamSubscription<StreamToken>? _sub;
 
   // Live stream text for the last assistant message (only updates this RxString during streaming)
   final RxString streamText = ''.obs;
+
+  // Thinking stream text (separate from response)
+  final RxString thinkingText = ''.obs;
+
+  // Whether currently in thinking phase
+  final RxBool isCurrentlyThinking = false.obs;
+
+  // Model ID used for the current streaming message
+  final RxString streamingModelId = ''.obs;
 
   // Track which message/session is currently being streamed to (for safe commit/cancel)
   String? _streamSessionId;
@@ -283,12 +292,14 @@ class ChatController extends GetxController {
     final userMsg = ChatMessage.user(
       content: trimmed,
       attachments: attachments,
+      modelId: usedModelId,
     );
     session.messages.add(userMsg);
 
-    // Assistant placeholder to stream into (show 'düşünüyor' if reasoning mode)
+    // Assistant placeholder to stream into
     final assistantMsg = ChatMessage.assistant(
-      content: thinking ? AppStrings.thinking : '',
+      content: '',
+      modelId: usedModelId,
     );
     session.messages.add(assistantMsg);
 
@@ -303,43 +314,41 @@ class ChatController extends GetxController {
 
     // Prepare live stream state
     streamText.value = '';
+    thinkingText.value = '';
+    isCurrentlyThinking.value = thinking;
+    streamingModelId.value = usedModelId;
     _streamSessionId = session.id;
     _streamMsgIndex = idx;
 
-    // Optional pre-stream "thinking" pause
-    if (thinking) {
-      await Future.delayed(const Duration(milliseconds: 1800));
-
-      // If canceled during the delay, clear placeholder and exit
-      if (!isStreaming.value) {
-        final current = session.messages[idx];
-        session.messages[idx] = current.copyWith(content: '');
-        return;
-      }
-
-      // Replace placeholder with empty before starting the real stream
-      final current = session.messages[idx];
-      session.messages[idx] = current.copyWith(content: '');
-    }
-
     _sub = _service
-        .streamCompletion(prompt: trimmed, attachments: attachments)
+        .streamCompletionWithThinking(
+          prompt: trimmed,
+          attachments: attachments,
+          thinking: thinking,
+        )
         .listen(
           (token) {
-            // Append to live stream only (do not touch the messages list)
-            streamText.value = streamText.value + token;
+            if (token.isThinking) {
+              thinkingText.value = thinkingText.value + token.text;
+            } else {
+              // Switch from thinking to response
+              if (isCurrentlyThinking.value) {
+                isCurrentlyThinking.value = false;
+              }
+              streamText.value = streamText.value + token.text;
+            }
           },
           onError: (_) {
-            // Commit whatever we have and stop
             _commitStreamToMessage(session, idx);
             _syncAllActiveBranches(session);
             isStreaming.value = false;
+            isCurrentlyThinking.value = false;
           },
           onDone: () {
-            // Final commit in a single list update
             _commitStreamToMessage(session, idx);
             _syncAllActiveBranches(session);
             isStreaming.value = false;
+            isCurrentlyThinking.value = false;
           },
           cancelOnError: true,
         );
@@ -356,25 +365,30 @@ class ChatController extends GetxController {
       }
     }
     isStreaming.value = false;
+    isCurrentlyThinking.value = false;
   }
 
   void _commitStreamToMessage(ChatSession session, int idx) {
     if (idx < 0 || idx >= session.messages.length) {
       streamText.value = '';
+      thinkingText.value = '';
       _streamMsgIndex = null;
       _streamSessionId = null;
       return;
     }
     final current = session.messages[idx];
-    if (streamText.value.isEmpty && current.content == AppStrings.thinking) {
-      // If we never started streaming, clear the placeholder
-      session.messages[idx] = current.copyWith(content: '');
-    } else if (streamText.value.isNotEmpty) {
-      session.messages[idx] = current.copyWith(
-        content: current.content + streamText.value,
-      );
-    }
+
+    // Commit both thinking and response content
+    final newContent = streamText.value;
+    final newThinking = thinkingText.value;
+
+    session.messages[idx] = current.copyWith(
+      content: current.content + newContent,
+      thinkingContent: newThinking.isNotEmpty ? newThinking : null,
+    );
+
     streamText.value = '';
+    thinkingText.value = '';
     _streamMsgIndex = null;
     _streamSessionId = null;
     session.updatedAt = DateTime.now();
@@ -597,7 +611,6 @@ class ChatController extends GetxController {
 
     // Get or create branches list for this fork point
     if (!session.branches.containsKey(parentId)) {
-      // First time branching: save the original branch (ALL messages from messageIndex)
       final originalBranch =
           session.messages
               .sublist(messageIndex)
@@ -606,7 +619,6 @@ class ChatController extends GetxController {
       session.branches[parentId] = [originalBranch];
       session.currentBranchIndex[parentId] = 0;
     } else {
-      // Save current branch state before creating new one (ALL remaining messages)
       final currentBranchIndex = session.currentBranchIndex[parentId] ?? 0;
       final branches = session.branches[parentId]!;
       if (currentBranchIndex < branches.length) {
@@ -618,40 +630,37 @@ class ChatController extends GetxController {
       }
     }
 
-    // Messages to keep: everything BEFORE messageIndex (common ancestors)
     final messagesToKeep = session.messages.sublist(0, messageIndex);
-
-    // Create new user message for the new branch
     final newBranchIndex = session.branches[parentId]!.length;
+
+    // Use current model
+    final usedModelId = session.modelId.value;
+
     final editedUserMsg = ChatMessage.user(
       content: trimmed,
       attachments: originalMsg.attachments,
       parentId: parentId,
       branchIndex: newBranchIndex,
       totalBranches: newBranchIndex + 1,
+      modelId: usedModelId,
     );
 
-    // Create assistant placeholder
     final assistantMsg = ChatMessage.assistant(
       content: '',
       parentId: editedUserMsg.id,
       branchIndex: newBranchIndex,
       totalBranches: newBranchIndex + 1,
+      modelId: usedModelId,
     );
 
-    // New branch contains only the edited user message and assistant placeholder
     final newBranch = [editedUserMsg, assistantMsg];
     session.branches[parentId]!.add(newBranch);
-
-    // Update current branch index to the new branch
     session.currentBranchIndex[parentId] = newBranchIndex;
 
-    // Rebuild messages list: ancestors + new branch
     session.messages.clear();
     session.messages.addAll(messagesToKeep);
     session.messages.addAll(newBranch);
 
-    // Clean up nested branch indices that are no longer valid
     _cleanupNestedBranchIndices(session, parentId);
 
     session.branches.refresh();
@@ -660,8 +669,6 @@ class ChatController extends GetxController {
     session.updatedAt = DateTime.now();
     _moveCurrentToLast();
 
-    // Ensure model history is updated
-    final usedModelId = session.modelId.value;
     if (session.modelHistory.isEmpty ||
         session.modelHistory.last != usedModelId) {
       session.modelHistory.add(usedModelId);
@@ -671,24 +678,40 @@ class ChatController extends GetxController {
     final idx = session.messages.length - 1;
 
     streamText.value = '';
+    thinkingText.value = '';
+    isCurrentlyThinking.value = false;
+    streamingModelId.value = usedModelId;
     _streamSessionId = session.id;
     _streamMsgIndex = idx;
 
     _sub = _service
-        .streamCompletion(prompt: trimmed, attachments: originalMsg.attachments)
+        .streamCompletionWithThinking(
+          prompt: trimmed,
+          attachments: originalMsg.attachments,
+          thinking: false,
+        )
         .listen(
           (token) {
-            streamText.value = streamText.value + token;
+            if (token.isThinking) {
+              thinkingText.value = thinkingText.value + token.text;
+            } else {
+              if (isCurrentlyThinking.value) {
+                isCurrentlyThinking.value = false;
+              }
+              streamText.value = streamText.value + token.text;
+            }
           },
           onError: (_) {
             _commitStreamToMessage(session, idx);
             _syncCurrentBranchAfterStream(session, parentId, messageIndex);
             isStreaming.value = false;
+            isCurrentlyThinking.value = false;
           },
           onDone: () {
             _commitStreamToMessage(session, idx);
             _syncCurrentBranchAfterStream(session, parentId, messageIndex);
             isStreaming.value = false;
+            isCurrentlyThinking.value = false;
           },
           cancelOnError: true,
         );
@@ -781,7 +804,6 @@ class ChatController extends GetxController {
 
     // Get or create branches list for this fork point
     if (!session.branches.containsKey(parentId)) {
-      // First time branching: save the original branch (ALL messages from userMessageIndex)
       final originalBranch =
           session.messages
               .sublist(userMessageIndex)
@@ -790,7 +812,6 @@ class ChatController extends GetxController {
       session.branches[parentId] = [originalBranch];
       session.currentBranchIndex[parentId] = 0;
     } else {
-      // Save current branch state before creating new one
       final currentBranchIndex = session.currentBranchIndex[parentId] ?? 0;
       final branches = session.branches[parentId]!;
       if (currentBranchIndex < branches.length) {
@@ -802,39 +823,34 @@ class ChatController extends GetxController {
       }
     }
 
-    // Messages to keep: everything BEFORE userMessageIndex (common ancestors)
     final messagesToKeep = session.messages.sublist(0, userMessageIndex);
-
-    // Create new branch with the same user message but new assistant response
     final newBranchIndex = session.branches[parentId]!.length;
 
-    // Copy user message with updated branch info
+    // Use current model
+    final usedModelId = session.modelId.value;
+
     final newUserMsg = userMsg.copyWith(
       branchIndex: newBranchIndex,
       totalBranches: newBranchIndex + 1,
+      modelId: usedModelId,
     );
 
-    // Create new assistant placeholder
     final newAssistantMsg = ChatMessage.assistant(
       content: '',
       parentId: newUserMsg.id,
       branchIndex: newBranchIndex,
       totalBranches: newBranchIndex + 1,
+      modelId: usedModelId,
     );
 
-    // New branch contains the user message and new assistant placeholder
     final newBranch = [newUserMsg, newAssistantMsg];
     session.branches[parentId]!.add(newBranch);
-
-    // Update current branch index to the new branch
     session.currentBranchIndex[parentId] = newBranchIndex;
 
-    // Rebuild messages list: ancestors + new branch
     session.messages.clear();
     session.messages.addAll(messagesToKeep);
     session.messages.addAll(newBranch);
 
-    // Clean up nested branch indices that are no longer valid
     _cleanupNestedBranchIndices(session, parentId);
 
     session.branches.refresh();
@@ -846,27 +862,40 @@ class ChatController extends GetxController {
     final idx = session.messages.length - 1;
 
     streamText.value = '';
+    thinkingText.value = '';
+    isCurrentlyThinking.value = false;
+    streamingModelId.value = usedModelId;
     _streamSessionId = session.id;
     _streamMsgIndex = idx;
 
     _sub = _service
-        .streamCompletion(
+        .streamCompletionWithThinking(
           prompt: userMsg.content,
           attachments: userMsg.attachments,
+          thinking: false,
         )
         .listen(
           (token) {
-            streamText.value = streamText.value + token;
+            if (token.isThinking) {
+              thinkingText.value = thinkingText.value + token.text;
+            } else {
+              if (isCurrentlyThinking.value) {
+                isCurrentlyThinking.value = false;
+              }
+              streamText.value = streamText.value + token.text;
+            }
           },
           onError: (_) {
             _commitStreamToMessage(session, idx);
             _syncCurrentBranchAfterStream(session, parentId, userMessageIndex);
             isStreaming.value = false;
+            isCurrentlyThinking.value = false;
           },
           onDone: () {
             _commitStreamToMessage(session, idx);
             _syncCurrentBranchAfterStream(session, parentId, userMessageIndex);
             isStreaming.value = false;
+            isCurrentlyThinking.value = false;
           },
           cancelOnError: true,
         );

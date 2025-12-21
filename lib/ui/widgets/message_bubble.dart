@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import '../../models/chat_message.dart';
-import '../../enums/app.enum.dart';
+import '../../core/sizer/app_sizer.dart';
 import '../../controllers/chat_controller.dart';
+import '../../enums/app.enum.dart';
+import '../../models/chat_message.dart';
+import 'response_section.dart';
 
 class MessageBubble extends StatefulWidget {
   final ChatMessage message;
   final int messageIndex;
-  // Live text override for streaming (only provided for the last assistant bubble)
   final RxString? streamingText;
 
   const MessageBubble({
@@ -23,519 +24,375 @@ class MessageBubble extends StatefulWidget {
 }
 
 class _MessageBubbleState extends State<MessageBubble> {
-  // Use ValueNotifier for hover to avoid full widget rebuild
-  final _hovering = ValueNotifier<bool>(false);
-  bool _editing = false;
-  bool _liked = false;
-  bool _disliked = false;
+  final _isHovered = false.obs;
+  final _isEditing = false.obs;
   final _editController = TextEditingController();
-  final _editFocus = FocusNode();
 
   @override
   void dispose() {
-    _hovering.dispose();
     _editController.dispose();
-    _editFocus.dispose();
     super.dispose();
-  }
-
-  void _startEdit() {
-    setState(() {
-      _editing = true;
-      _editController.text = widget.message.content;
-    });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _editFocus.requestFocus();
-    });
-  }
-
-  void _cancelEdit() {
-    setState(() {
-      _editing = false;
-    });
-    _editFocus.unfocus();
-  }
-
-  void _submitEdit() {
-    final newContent = _editController.text.trim();
-    if (newContent.isEmpty || newContent == widget.message.content) {
-      _cancelEdit();
-      return;
-    }
-
-    final chat = Get.find<ChatController>();
-    chat.editAndResend(widget.messageIndex, newContent);
-
-    setState(() {
-      _editing = false;
-    });
-    _editFocus.unfocus();
-  }
-
-  void _copyToClipboard() {
-    Clipboard.setData(ClipboardData(text: widget.message.content));
-    Get.snackbar(
-      AppStrings.copyMessage,
-      AppStrings.copiedToClipboard,
-      snackPosition: SnackPosition.TOP,
-      margin: const EdgeInsets.all(12),
-      duration: const Duration(seconds: 2),
-    );
-  }
-
-  void _toggleLike() {
-    setState(() {
-      _liked = !_liked;
-      if (_liked) _disliked = false;
-    });
-  }
-
-  void _toggleDislike() {
-    setState(() {
-      _disliked = !_disliked;
-      if (_disliked) _liked = false;
-    });
-  }
-
-  void _regenerate() {
-    final chat = Get.find<ChatController>();
-    // Pass the assistant message index for regeneration
-    chat.regenerateResponse(widget.messageIndex);
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final chat = Get.find<ChatController>();
     final isUser = widget.message.role == ChatRole.user;
-    final theme = Theme.of(context);
-    final chat = Get.find<ChatController>();
-    final bg =
-        isUser
-            ? theme.colorScheme.primary.withValues(alpha: 0.12)
-            : theme.cardColor;
-    final fg =
-        isUser
-            ? theme.colorScheme.onPrimaryContainer
-            : theme.textTheme.bodyMedium?.color;
 
-    return MouseRegion(
-      onEnter: (_) => _hovering.value = true,
-      onExit: (_) => _hovering.value = false,
-      child: Align(
-        alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: Column(
-            crossAxisAlignment:
-                isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    margin: EdgeInsets.only(
-                      top: 10,
-                      bottom: 10,
-                      left: isUser ? 40 : 8,
-                      right: isUser ? 8 : 40,
-                    ),
-                    decoration: BoxDecoration(
-                      color: bg,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: theme.dividerColor),
-                    ),
-                    child: DefaultTextStyle(
-                      style: theme.textTheme.bodyLarge!.copyWith(color: fg),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (widget.message.attachments.isNotEmpty && isUser)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 6),
-                              child: Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                children:
-                                    widget.message.attachments
-                                        .map(
-                                          (a) => Chip(
-                                            label: Text(a.name),
-                                            materialTapTargetSize:
-                                                MaterialTapTargetSize
-                                                    .shrinkWrap,
-                                            visualDensity:
-                                                VisualDensity.compact,
-                                            padding: EdgeInsets.zero,
-                                          ),
-                                        )
-                                        .toList(),
-                              ),
-                            ),
-                          if (_editing)
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                TextField(
-                                  controller: _editController,
-                                  focusNode: _editFocus,
-                                  minLines: 1,
-                                  maxLines: 6,
-                                  decoration: InputDecoration(
-                                    isDense: true,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 10,
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                  ),
-                                  onSubmitted: (_) => _submitEdit(),
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    IconButton(
-                                      tooltip: AppStrings.cancel,
-                                      icon: Icon(
-                                        Icons.close_rounded,
-                                        size: 20,
-                                        color: theme.colorScheme.error,
-                                      ),
-                                      onPressed: _cancelEdit,
-                                      visualDensity: VisualDensity.compact,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    IconButton(
-                                      tooltip: AppStrings.editMessage,
-                                      icon: Icon(
-                                        Icons.check_rounded,
-                                        size: 20,
-                                        color: theme.colorScheme.primary,
-                                      ),
-                                      onPressed: _submitEdit,
-                                      visualDensity: VisualDensity.compact,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            )
-                          else if (widget.streamingText != null)
-                            Obx(() {
-                              final live = widget.streamingText!.value;
-                              final showThinking =
-                                  !isUser &&
-                                  widget.message.content.trim() ==
-                                      AppStrings.thinking &&
-                                  live.isEmpty;
-                              if (showThinking) {
-                                return _ThinkingPulse(
-                                  text: AppStrings.thinking,
-                                  color:
-                                      theme.textTheme.bodyMedium?.color
-                                          ?.withValues(alpha: 0.6) ??
-                                      Colors.grey,
-                                );
-                              }
-                              return Text(live.isEmpty ? '' : live);
-                            })
-                          else
-                            Builder(
-                              builder: (_) {
-                                final isThinking =
-                                    !isUser &&
-                                    widget.message.content.trim() ==
-                                        AppStrings.thinking;
-                                if (isThinking) {
-                                  return _ThinkingPulse(
-                                    text: AppStrings.thinking,
-                                    color:
-                                        theme.textTheme.bodyMedium?.color
-                                            ?.withValues(alpha: 0.6) ??
-                                        Colors.grey,
-                                  );
-                                }
-                                return Text(widget.message.content);
-                              },
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Use ValueListenableBuilder for hover actions
-                  if (isUser && !_editing)
-                    ValueListenableBuilder<bool>(
-                      valueListenable: _hovering,
-                      builder: (context, hovering, _) {
-                        if (!hovering) return const SizedBox.shrink();
-                        return Positioned(
-                          bottom: -6,
-                          right: 8,
-                          child: _ActionBar(
-                            theme: theme,
-                            children: [
-                              _ActionButton(
-                                tooltip: AppTooltips.editMessage,
-                                icon: Icons.edit_outlined,
-                                onTap: _startEdit,
-                              ),
-                              _ActionButton(
-                                tooltip: AppTooltips.copyMessage,
-                                icon: Icons.copy_outlined,
-                                onTap: _copyToClipboard,
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  if (!isUser && widget.streamingText == null)
-                    ValueListenableBuilder<bool>(
-                      valueListenable: _hovering,
-                      builder: (context, hovering, _) {
-                        if (!hovering) return const SizedBox.shrink();
-                        return Positioned(
-                          bottom: -6,
-                          left: 8,
-                          child: _ActionBar(
-                            theme: theme,
-                            children: [
-                              _ActionButton(
-                                tooltip: AppTooltips.likeMessage,
-                                icon:
-                                    _liked
-                                        ? Icons.thumb_up
-                                        : Icons.thumb_up_outlined,
-                                onTap: _toggleLike,
-                                isActive: _liked,
-                              ),
-                              _ActionButton(
-                                tooltip: AppTooltips.dislikeMessage,
-                                icon:
-                                    _disliked
-                                        ? Icons.thumb_down
-                                        : Icons.thumb_down_outlined,
-                                onTap: _toggleDislike,
-                                isActive: _disliked,
-                              ),
-                              _ActionButton(
-                                tooltip: AppTooltips.copyMessage,
-                                icon: Icons.copy_outlined,
-                                onTap: _copyToClipboard,
-                              ),
-                              _ActionButton(
-                                tooltip: AppTooltips.regenerateMessage,
-                                icon: Icons.refresh_rounded,
-                                onTap: _regenerate,
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                ],
+    if (isUser) {
+      return _buildUserMessage(context, theme, chat);
+    } else {
+      return _buildAssistantMessage(context, theme, chat);
+    }
+  }
+
+  Widget _buildUserMessage(
+    BuildContext context,
+    ThemeData theme,
+    ChatController chat,
+  ) {
+    final bubblePad = EdgeInsets.symmetric(
+      horizontal: 1.6.cw(context).clamp(12.0, 20.0),
+      vertical: 1.0.ch(context).clamp(8.0, 14.0),
+    );
+    final bubbleRadius = 1.8.cw(context).clamp(12.0, 18.0);
+
+    // Fixed height for actions to prevent layout shift
+    final actionsHeight = 2.4.ch(context).clamp(32.0, 40.0);
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 1.2.ch(context).clamp(8.0, 16.0)),
+      child: MouseRegion(
+        onEnter: (_) => _isHovered.value = true,
+        onExit: (_) => _isHovered.value = false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            // User bubble
+            Container(
+              padding: bubblePad,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(bubbleRadius),
               ),
-              // Branch navigator - show below user message if branches exist
-              if (isUser)
-                Obx(() {
-                  // Force reactivity by accessing the session's branch data
-                  final _ = chat.messages.length; // triggers on message changes
-                  final totalBranches = chat.getTotalBranchesAt(
-                    widget.messageIndex,
-                  );
-                  if (totalBranches <= 1) return const SizedBox.shrink();
-
-                  final currentBranch = chat.getCurrentBranchAt(
-                    widget.messageIndex,
-                  );
-
-                  return Padding(
-                    padding: EdgeInsets.only(
-                      right: isUser ? 8 : 0,
-                      left: isUser ? 0 : 8,
-                      bottom: 4,
+              child: Obx(() {
+                if (_isEditing.value) {
+                  return _buildEditField(context, theme, chat);
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Attachments
+                    if (widget.message.attachments.isNotEmpty)
+                      Padding(
+                        padding: EdgeInsets.only(
+                          bottom: 0.6.ch(context).clamp(4.0, 8.0),
+                        ),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 4,
+                          children:
+                              widget.message.attachments
+                                  .map(
+                                    (a) => Chip(
+                                      label: Text(
+                                        a.name,
+                                        style: theme.textTheme.bodySmall,
+                                      ),
+                                      avatar: const Icon(
+                                        Icons.attach_file_rounded,
+                                        size: 14,
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                        ),
+                      ),
+                    SelectableText(
+                      widget.message.content,
+                      style: theme.textTheme.bodyLarge,
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Previous branch button
-                        InkWell(
-                          onTap:
-                              currentBranch > 0
-                                  ? () {
-                                    chat.switchBranch(
-                                      widget.messageIndex,
-                                      currentBranch - 1,
-                                    );
-                                  }
-                                  : null,
-                          borderRadius: BorderRadius.circular(4),
-                          child: Padding(
-                            padding: const EdgeInsets.all(4),
-                            child: Icon(
-                              Icons.chevron_left_rounded,
-                              size: 18,
-                              color:
-                                  currentBranch > 0
-                                      ? theme.iconTheme.color
-                                      : theme.disabledColor,
-                            ),
-                          ),
-                        ),
-                        // Branch indicator
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Text(
-                            '${currentBranch + 1}/$totalBranches',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.textTheme.bodySmall?.color
-                                  ?.withValues(alpha: 0.7),
-                            ),
-                          ),
-                        ),
-                        // Next branch button
-                        InkWell(
-                          onTap:
-                              currentBranch < totalBranches - 1
-                                  ? () {
-                                    chat.switchBranch(
-                                      widget.messageIndex,
-                                      currentBranch + 1,
-                                    );
-                                  }
-                                  : null,
-                          borderRadius: BorderRadius.circular(4),
-                          child: Padding(
-                            padding: const EdgeInsets.all(4),
-                            child: Icon(
-                              Icons.chevron_right_rounded,
-                              size: 18,
-                              color:
-                                  currentBranch < totalBranches - 1
-                                      ? theme.iconTheme.color
-                                      : theme.disabledColor,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }),
-            ],
+                  ],
+                );
+              }),
+            ),
+            // Actions below the bubble - fixed height container
+            SizedBox(
+              height: actionsHeight,
+              child: Obx(() {
+                final showActions = _isHovered.value && !_isEditing.value;
+                return AnimatedOpacity(
+                  opacity: showActions ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 150),
+                  child:
+                      showActions
+                          ? Align(
+                            alignment: Alignment.centerRight,
+                            child: _buildUserActions(context, theme, chat),
+                          )
+                          : const SizedBox.shrink(),
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAssistantMessage(
+    BuildContext context,
+    ThemeData theme,
+    ChatController chat,
+  ) {
+    final isLast = widget.messageIndex == chat.messages.length - 1;
+    final isStreaming = chat.isStreaming.value && isLast;
+
+    // Determine which model generated this response
+    final modelId =
+        widget.message.modelId ??
+        (chat.streamingModelId.value.isNotEmpty
+            ? chat.streamingModelId.value
+            : chat.currentModelId);
+
+    // Check if thinking mode was used for this message
+    final hasThinkingContent =
+        widget.message.thinkingContent != null &&
+        widget.message.thinkingContent!.isNotEmpty;
+    final isCurrentlyThinking = isStreaming && chat.isCurrentlyThinking.value;
+    final hasStreamingThinking =
+        isStreaming && chat.thinkingText.value.isNotEmpty;
+
+    // Only show thinking section if there's actual thinking content
+    final showThinking =
+        hasThinkingContent || isCurrentlyThinking || hasStreamingThinking;
+
+    // Fixed height for actions to prevent layout shift
+    final actionsHeight = 2.4.ch(context).clamp(32.0, 40.0);
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 1.6.ch(context).clamp(12.0, 20.0)),
+      child: MouseRegion(
+        onEnter: (_) => _isHovered.value = true,
+        onExit: (_) => _isHovered.value = false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Response content
+            ResponseSection(
+              message: widget.message,
+              messageIndex: widget.messageIndex,
+              streamingText: isStreaming ? widget.streamingText : null,
+              thinkingText:
+                  showThinking
+                      ? (isStreaming
+                          ? chat.thinkingText
+                          : RxString(widget.message.thinkingContent ?? ''))
+                      : null,
+              isThinking:
+                  showThinking
+                      ? (isStreaming ? chat.isCurrentlyThinking : false.obs)
+                      : null,
+              modelId: modelId,
+            ),
+
+            // Actions row - fixed height container to prevent layout shift
+            SizedBox(
+              height: actionsHeight,
+              child: Obx(() {
+                final showActions = _isHovered.value && !isStreaming;
+                return AnimatedOpacity(
+                  opacity: showActions ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 150),
+                  child:
+                      showActions
+                          ? _buildAssistantActions(context, theme, chat)
+                          : const SizedBox.shrink(),
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUserActions(
+    BuildContext context,
+    ThemeData theme,
+    ChatController chat,
+  ) {
+    final iconSize = 1.4.csp(context).clamp(16.0, 20.0);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        // Branch navigation
+        _buildBranchNav(context, theme, chat),
+        // Edit button
+        IconButton(
+          tooltip: AppTooltips.editMessage,
+          icon: Icon(Icons.edit_outlined, size: iconSize),
+          onPressed: () {
+            _editController.text = widget.message.content;
+            _isEditing.value = true;
+          },
+          visualDensity: VisualDensity.compact,
+        ),
+        // Copy button
+        IconButton(
+          tooltip: AppTooltips.copyMessage,
+          icon: Icon(Icons.copy_rounded, size: iconSize),
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: widget.message.content));
+            Get.snackbar(
+              '',
+              AppStrings.copiedToClipboard,
+              snackPosition: SnackPosition.BOTTOM,
+              duration: const Duration(seconds: 2),
+            );
+          },
+          visualDensity: VisualDensity.compact,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAssistantActions(
+    BuildContext context,
+    ThemeData theme,
+    ChatController chat,
+  ) {
+    final iconSize = 1.4.csp(context).clamp(16.0, 20.0);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Copy button
+        IconButton(
+          tooltip: AppTooltips.copyMessage,
+          icon: Icon(Icons.copy_rounded, size: iconSize),
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: widget.message.content));
+            Get.snackbar(
+              '',
+              AppStrings.copiedToClipboard,
+              snackPosition: SnackPosition.BOTTOM,
+              duration: const Duration(seconds: 2),
+            );
+          },
+          visualDensity: VisualDensity.compact,
+        ),
+        // Like button
+        IconButton(
+          tooltip: AppTooltips.likeMessage,
+          icon: Icon(Icons.thumb_up_outlined, size: iconSize),
+          onPressed: () {
+            // TODO: Implement like
+          },
+          visualDensity: VisualDensity.compact,
+        ),
+        // Dislike button
+        IconButton(
+          tooltip: AppTooltips.dislikeMessage,
+          icon: Icon(Icons.thumb_down_outlined, size: iconSize),
+          onPressed: () {
+            // TODO: Implement dislike
+          },
+          visualDensity: VisualDensity.compact,
+        ),
+        // Regenerate button
+        IconButton(
+          tooltip: AppTooltips.regenerateMessage,
+          icon: Icon(Icons.refresh_rounded, size: iconSize),
+          onPressed: () => chat.regenerateResponse(widget.messageIndex),
+          visualDensity: VisualDensity.compact,
+        ),
+        // Branch navigation
+        _buildBranchNav(context, theme, chat),
+      ],
+    );
+  }
+
+  Widget _buildBranchNav(
+    BuildContext context,
+    ThemeData theme,
+    ChatController chat,
+  ) {
+    return Obx(() {
+      final total = chat.getTotalBranchesAt(widget.messageIndex);
+      if (total <= 1) return const SizedBox.shrink();
+
+      final current = chat.getCurrentBranchAt(widget.messageIndex);
+      final textStyle = theme.textTheme.bodySmall;
+
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left_rounded, size: 18),
+            onPressed:
+                current > 0
+                    ? () => chat.switchBranch(widget.messageIndex, current - 1)
+                    : null,
+            visualDensity: VisualDensity.compact,
+          ),
+          Text('${current + 1}/$total', style: textStyle),
+          IconButton(
+            icon: const Icon(Icons.chevron_right_rounded, size: 18),
+            onPressed:
+                current < total - 1
+                    ? () => chat.switchBranch(widget.messageIndex, current + 1)
+                    : null,
+            visualDensity: VisualDensity.compact,
+          ),
+        ],
+      );
+    });
+  }
+
+  Widget _buildEditField(
+    BuildContext context,
+    ThemeData theme,
+    ChatController chat,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          controller: _editController,
+          maxLines: null,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: AppStrings.inputHint,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            contentPadding: const EdgeInsets.all(12),
           ),
         ),
-      ),
-    );
-  }
-}
-
-// Reusable action bar container
-class _ActionBar extends StatelessWidget {
-  final ThemeData theme;
-  final List<Widget> children;
-
-  const _ActionBar({required this.theme, required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: theme.cardColor,
-      borderRadius: BorderRadius.circular(8),
-      elevation: 2,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: theme.dividerColor),
+        SizedBox(height: 0.8.ch(context).clamp(6.0, 10.0)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton(
+              onPressed: () => _isEditing.value = false,
+              child: Text(AppStrings.cancel),
+            ),
+            SizedBox(width: 0.8.cw(context).clamp(6.0, 10.0)),
+            FilledButton(
+              onPressed: () {
+                final newText = _editController.text.trim();
+                if (newText.isNotEmpty && newText != widget.message.content) {
+                  chat.editAndResend(widget.messageIndex, newText);
+                }
+                _isEditing.value = false;
+              },
+              child: Text(AppStrings.continueAction),
+            ),
+          ],
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children:
-              children.expand((w) => [w, const SizedBox(width: 2)]).toList()
-                ..removeLast(),
-        ),
-      ),
-    );
-  }
-}
-
-// Reusable action button
-class _ActionButton extends StatelessWidget {
-  final String tooltip;
-  final IconData icon;
-  final VoidCallback onTap;
-  final bool isActive;
-
-  const _ActionButton({
-    required this.tooltip,
-    required this.icon,
-    required this.onTap,
-    this.isActive = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(6),
-        child: Padding(
-          padding: const EdgeInsets.all(6),
-          child: Icon(
-            icon,
-            size: 16,
-            color: isActive ? theme.colorScheme.primary : theme.iconTheme.color,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// Pulsing opacity for "thinking"
-class _ThinkingPulse extends StatefulWidget {
-  final String text;
-  final Color color;
-  const _ThinkingPulse({required this.text, required this.color});
-
-  @override
-  State<_ThinkingPulse> createState() => _ThinkingPulseState();
-}
-
-class _ThinkingPulseState extends State<_ThinkingPulse>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1200),
-  )..repeat(reverse: true);
-  late final Animation<double> _anim = Tween<double>(
-    begin: 0.45,
-    end: 1.0,
-  ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _anim,
-      child: Text(
-        widget.text,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: widget.color,
-          fontStyle: FontStyle.italic,
-        ),
-      ),
+      ],
     );
   }
 }

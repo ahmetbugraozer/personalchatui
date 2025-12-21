@@ -46,6 +46,12 @@ class ChatMessage {
   final int branchIndex; // which branch this message belongs to (0 = original)
   final int totalBranches; // total number of branches at this point
 
+  // Model that generated this message
+  final String? modelId;
+
+  // Thinking content (for reasoning mode)
+  final String? thinkingContent;
+
   ChatMessage({
     required this.id,
     required this.role,
@@ -54,6 +60,8 @@ class ChatMessage {
     this.parentId,
     this.branchIndex = 0,
     this.totalBranches = 1,
+    this.modelId,
+    this.thinkingContent,
   });
 
   factory ChatMessage.user({
@@ -62,6 +70,7 @@ class ChatMessage {
     String? parentId,
     int branchIndex = 0,
     int totalBranches = 1,
+    String? modelId,
   }) => ChatMessage(
     id: DateTime.now().microsecondsSinceEpoch.toString(),
     role: ChatRole.user,
@@ -70,6 +79,7 @@ class ChatMessage {
     parentId: parentId,
     branchIndex: branchIndex,
     totalBranches: totalBranches,
+    modelId: modelId,
   );
 
   factory ChatMessage.assistant({
@@ -77,6 +87,8 @@ class ChatMessage {
     String? parentId,
     int branchIndex = 0,
     int totalBranches = 1,
+    String? modelId,
+    String? thinkingContent,
   }) => ChatMessage(
     id: DateTime.now().microsecondsSinceEpoch.toString(),
     role: ChatRole.assistant,
@@ -84,6 +96,8 @@ class ChatMessage {
     parentId: parentId,
     branchIndex: branchIndex,
     totalBranches: totalBranches,
+    modelId: modelId,
+    thinkingContent: thinkingContent,
   );
 
   ChatMessage copyWith({
@@ -94,6 +108,8 @@ class ChatMessage {
     String? parentId,
     int? branchIndex,
     int? totalBranches,
+    String? modelId,
+    String? thinkingContent,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -103,6 +119,8 @@ class ChatMessage {
       parentId: parentId ?? this.parentId,
       branchIndex: branchIndex ?? this.branchIndex,
       totalBranches: totalBranches ?? this.totalBranches,
+      modelId: modelId ?? this.modelId,
+      thinkingContent: thinkingContent ?? this.thinkingContent,
     );
   }
 }

@@ -152,6 +152,7 @@ class AppStrings {
 
   // Thinking label
   static const thinking = 'Düşünüyor';
+  static const thinkingPhase = 'Düşünme aşaması';
 
   // Message actions
   static const editMessage = 'Düzenle';
