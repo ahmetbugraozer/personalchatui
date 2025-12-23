@@ -39,7 +39,7 @@ class ResponseSection extends StatelessWidget {
       children: [
         // Model logo
         Padding(
-          padding: EdgeInsets.only(bottom: 1.0.ch(context).clamp(8.0, 14.0)),
+          padding: EdgeInsets.only(bottom: 3.0.ch(context).clamp(12.0, 21.0)),
           child: SvgPicture.asset(
             meta.logoUrl,
             width: logoSize,
@@ -65,7 +65,10 @@ class ResponseSection extends StatelessWidget {
 
         // Response content
         Padding(
-          padding: EdgeInsets.only(left: contentPadding),
+          padding: EdgeInsets.only(
+            bottom: contentPadding,
+            left: contentPadding,
+          ),
           child: _buildContent(context, theme),
         ),
       ],

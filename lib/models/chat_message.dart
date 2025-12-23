@@ -1,3 +1,5 @@
+import 'dart:math';
+
 enum ChatRole { user, assistant }
 
 // Removed AttachmentType; all attachments are generic files now.
@@ -64,6 +66,12 @@ class ChatMessage {
     this.thinkingContent,
   });
 
+  // Generate a unique ID with random component to prevent collisions
+  // when messages are created in the same microsecond tick
+  static String _generateId() {
+    return '${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(100000)}';
+  }
+
   factory ChatMessage.user({
     required String content,
     List<Attachment> attachments = const [],
@@ -72,7 +80,7 @@ class ChatMessage {
     int totalBranches = 1,
     String? modelId,
   }) => ChatMessage(
-    id: DateTime.now().microsecondsSinceEpoch.toString(),
+    id: _generateId(),
     role: ChatRole.user,
     content: content,
     attachments: attachments,
@@ -90,7 +98,7 @@ class ChatMessage {
     String? modelId,
     String? thinkingContent,
   }) => ChatMessage(
-    id: DateTime.now().microsecondsSinceEpoch.toString(),
+    id: _generateId(),
     role: ChatRole.assistant,
     content: content,
     parentId: parentId,

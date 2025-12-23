@@ -382,9 +382,14 @@ class ChatController extends GetxController {
     final newContent = streamText.value;
     final newThinking = thinkingText.value;
 
+    // Explicitly preserve existing thinking content if newThinking is empty
+    // This ensures we don't accidentally clear it if we pass null to copyWith
+    final finalThinking =
+        newThinking.isNotEmpty ? newThinking : current.thinkingContent;
+
     session.messages[idx] = current.copyWith(
       content: current.content + newContent,
-      thinkingContent: newThinking.isNotEmpty ? newThinking : null,
+      thinkingContent: finalThinking,
     );
 
     streamText.value = '';
@@ -559,15 +564,39 @@ class ChatController extends GetxController {
 
   // Restore branch indices for nested branches whose parent is now in the message list
   void _restoreNestedBranchIndices(ChatSession session) {
-    final messageIds = session.messages.map((m) => m.id).toSet();
-    messageIds.add('root');
+    final messageMap = {for (var m in session.messages) m.id: m};
 
-    // For each branch, if its parent is in current messages and we don't have
-    // a currentBranchIndex for it, set it to 0 (the original branch)
+    // Iterate over all fork points (parents that have branches)
     for (final parentId in session.branches.keys) {
-      if (messageIds.contains(parentId)) {
-        // Parent is visible, ensure we have an index (default to 0 if missing)
-        session.currentBranchIndex.putIfAbsent(parentId, () => 0);
+      // Check if this parent is currently visible in the message list
+      final isRoot = parentId == 'root';
+      final isParentVisible = isRoot || messageMap.containsKey(parentId);
+
+      if (isParentVisible) {
+        // Try to find the child message immediately following this parent
+        ChatMessage? child;
+        if (isRoot) {
+          if (session.messages.isNotEmpty) {
+            child = session.messages.first;
+          }
+        } else {
+          final parentIndex = session.messages.indexWhere(
+            (m) => m.id == parentId,
+          );
+          if (parentIndex != -1 && parentIndex + 1 < session.messages.length) {
+            child = session.messages[parentIndex + 1];
+          }
+        }
+
+        // If we found a child and it belongs to this parent, use its branch index
+        // This ensures the UI (< 1/2 >) matches the actual content displayed
+        if (child != null && (child.parentId ?? 'root') == parentId) {
+          session.currentBranchIndex[parentId] = child.branchIndex;
+        } else {
+          // If parent is visible but has no child (end of list),
+          // ensure we have a default index (0) if none exists.
+          session.currentBranchIndex.putIfAbsent(parentId, () => 0);
+        }
       }
     }
   }
@@ -633,8 +662,8 @@ class ChatController extends GetxController {
     final messagesToKeep = session.messages.sublist(0, messageIndex);
     final newBranchIndex = session.branches[parentId]!.length;
 
-    // Use current model
-    final usedModelId = session.modelId.value;
+    // Use the model from the original message if available, otherwise current session model
+    final usedModelId = originalMsg.modelId ?? session.modelId.value;
 
     final editedUserMsg = ChatMessage.user(
       content: trimmed,
@@ -648,8 +677,9 @@ class ChatController extends GetxController {
     final assistantMsg = ChatMessage.assistant(
       content: '',
       parentId: editedUserMsg.id,
-      branchIndex: newBranchIndex,
-      totalBranches: newBranchIndex + 1,
+      branchIndex:
+          0, // Fixed: First response to a new prompt is always branch 0
+      totalBranches: 1,
       modelId: usedModelId,
     );
 
@@ -661,7 +691,8 @@ class ChatController extends GetxController {
     session.messages.addAll(messagesToKeep);
     session.messages.addAll(newBranch);
 
-    _cleanupNestedBranchIndices(session, parentId);
+    // Restore nested branch indices for messages that are now in view
+    _restoreNestedBranchIndices(session);
 
     session.branches.refresh();
     session.currentBranchIndex.refresh();
@@ -796,19 +827,24 @@ class ChatController extends GetxController {
     final userMsg = session.messages[userMessageIndex];
     if (userMsg.role != ChatRole.user) return;
 
-    // The fork point is at the user message position (same as editAndResend)
-    final parentId =
-        userMessageIndex > 0
-            ? session.messages[userMessageIndex - 1].id
-            : 'root';
+    // The fork point is at the user message (we are branching the response, not the prompt)
+    final parentId = userMsg.id;
 
     // Get or create branches list for this fork point
     if (!session.branches.containsKey(parentId)) {
       final originalBranch =
           session.messages
-              .sublist(userMessageIndex)
+              .sublist(assistantMessageIndex)
               .map((m) => m.copyWith())
               .toList();
+
+      // Ensure the first message of the original branch has index 0
+      // This fixes issues if the message was created with a wrong index previously
+      if (originalBranch.isNotEmpty &&
+          originalBranch.first.parentId == parentId) {
+        originalBranch[0] = originalBranch[0].copyWith(branchIndex: 0);
+      }
+
       session.branches[parentId] = [originalBranch];
       session.currentBranchIndex[parentId] = 0;
     } else {
@@ -817,33 +853,30 @@ class ChatController extends GetxController {
       if (currentBranchIndex < branches.length) {
         branches[currentBranchIndex] =
             session.messages
-                .sublist(userMessageIndex)
+                .sublist(assistantMessageIndex)
                 .map((m) => m.copyWith())
                 .toList();
       }
     }
 
-    final messagesToKeep = session.messages.sublist(0, userMessageIndex);
+    final messagesToKeep = session.messages.sublist(0, assistantMessageIndex);
     final newBranchIndex = session.branches[parentId]!.length;
 
-    // Use current model
-    final usedModelId = session.modelId.value;
+    // Use the model that generated the original message, or fallback to current if missing
+    final usedModelId = assistantMsg.modelId ?? session.modelId.value;
 
-    final newUserMsg = userMsg.copyWith(
-      branchIndex: newBranchIndex,
-      totalBranches: newBranchIndex + 1,
-      modelId: usedModelId,
-    );
-
+    // Create only the new assistant message (user message remains common ancestor)
+    // Explicitly set thinkingContent to null for the new regeneration (unless we enable thinking for it later)
     final newAssistantMsg = ChatMessage.assistant(
       content: '',
-      parentId: newUserMsg.id,
+      parentId: parentId,
       branchIndex: newBranchIndex,
       totalBranches: newBranchIndex + 1,
       modelId: usedModelId,
+      thinkingContent: null,
     );
 
-    final newBranch = [newUserMsg, newAssistantMsg];
+    final newBranch = [newAssistantMsg];
     session.branches[parentId]!.add(newBranch);
     session.currentBranchIndex[parentId] = newBranchIndex;
 
@@ -857,6 +890,12 @@ class ChatController extends GetxController {
     session.currentBranchIndex.refresh();
 
     session.updatedAt = DateTime.now();
+
+    // Ensure history records the model used for this message
+    if (session.modelHistory.isEmpty ||
+        session.modelHistory.last != usedModelId) {
+      session.modelHistory.add(usedModelId);
+    }
 
     isStreaming.value = true;
     final idx = session.messages.length - 1;
@@ -887,13 +926,21 @@ class ChatController extends GetxController {
           },
           onError: (_) {
             _commitStreamToMessage(session, idx);
-            _syncCurrentBranchAfterStream(session, parentId, userMessageIndex);
+            _syncCurrentBranchAfterStream(
+              session,
+              parentId,
+              assistantMessageIndex,
+            );
             isStreaming.value = false;
             isCurrentlyThinking.value = false;
           },
           onDone: () {
             _commitStreamToMessage(session, idx);
-            _syncCurrentBranchAfterStream(session, parentId, userMessageIndex);
+            _syncCurrentBranchAfterStream(
+              session,
+              parentId,
+              assistantMessageIndex,
+            );
             isStreaming.value = false;
             isCurrentlyThinking.value = false;
           },

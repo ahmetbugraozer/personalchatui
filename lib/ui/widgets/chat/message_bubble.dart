@@ -270,6 +270,8 @@ class _MessageBubbleState extends State<MessageBubble> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // Branch navigation (Moved to start for assistant messages)
+        _buildBranchNav(context, theme, chat),
         // Copy button
         IconButton(
           tooltip: AppTooltips.copyMessage,
@@ -310,8 +312,6 @@ class _MessageBubbleState extends State<MessageBubble> {
           onPressed: () => chat.regenerateResponse(widget.messageIndex),
           visualDensity: VisualDensity.compact,
         ),
-        // Branch navigation
-        _buildBranchNav(context, theme, chat),
       ],
     );
   }
