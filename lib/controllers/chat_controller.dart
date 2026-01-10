@@ -635,6 +635,18 @@ class ChatController extends GetxController {
     final originalMsg = session.messages[messageIndex];
     if (originalMsg.role != ChatRole.user) return;
 
+    // Check if the original assistant response (if exists) had thinking content
+    bool originalHadThinking = false;
+    if (messageIndex + 1 < session.messages.length) {
+      final originalAssistant = session.messages[messageIndex + 1];
+      if (originalAssistant.role == ChatRole.assistant) {
+        originalHadThinking =
+            originalAssistant.thinkingContent != null &&
+            originalAssistant.thinkingContent!.isNotEmpty;
+      }
+    }
+    final useThinking = originalHadThinking || session.thinkingEnabled.value;
+
     final parentId =
         messageIndex > 0 ? session.messages[messageIndex - 1].id : 'root';
 
@@ -710,7 +722,7 @@ class ChatController extends GetxController {
 
     streamText.value = '';
     thinkingText.value = '';
-    isCurrentlyThinking.value = false;
+    isCurrentlyThinking.value = useThinking;
     streamingModelId.value = usedModelId;
     _streamSessionId = session.id;
     _streamMsgIndex = idx;
@@ -719,7 +731,7 @@ class ChatController extends GetxController {
         .streamCompletionWithThinking(
           prompt: trimmed,
           attachments: originalMsg.attachments,
-          thinking: false,
+          thinking: useThinking,
         )
         .listen(
           (token) {
@@ -827,6 +839,14 @@ class ChatController extends GetxController {
     final userMsg = session.messages[userMessageIndex];
     if (userMsg.role != ChatRole.user) return;
 
+    // Determine if thinking mode should be used:
+    // 1. If the original message had thinking content, use thinking mode
+    // 2. Or if the session currently has thinking enabled
+    final originalHadThinking =
+        assistantMsg.thinkingContent != null &&
+        assistantMsg.thinkingContent!.isNotEmpty;
+    final useThinking = originalHadThinking || session.thinkingEnabled.value;
+
     // The fork point is at the user message (we are branching the response, not the prompt)
     final parentId = userMsg.id;
 
@@ -839,7 +859,6 @@ class ChatController extends GetxController {
               .toList();
 
       // Ensure the first message of the original branch has index 0
-      // This fixes issues if the message was created with a wrong index previously
       if (originalBranch.isNotEmpty &&
           originalBranch.first.parentId == parentId) {
         originalBranch[0] = originalBranch[0].copyWith(branchIndex: 0);
@@ -866,7 +885,6 @@ class ChatController extends GetxController {
     final usedModelId = assistantMsg.modelId ?? session.modelId.value;
 
     // Create only the new assistant message (user message remains common ancestor)
-    // Explicitly set thinkingContent to null for the new regeneration (unless we enable thinking for it later)
     final newAssistantMsg = ChatMessage.assistant(
       content: '',
       parentId: parentId,
@@ -902,7 +920,7 @@ class ChatController extends GetxController {
 
     streamText.value = '';
     thinkingText.value = '';
-    isCurrentlyThinking.value = false;
+    isCurrentlyThinking.value = useThinking;
     streamingModelId.value = usedModelId;
     _streamSessionId = session.id;
     _streamMsgIndex = idx;
@@ -911,7 +929,7 @@ class ChatController extends GetxController {
         .streamCompletionWithThinking(
           prompt: userMsg.content,
           attachments: userMsg.attachments,
-          thinking: false,
+          thinking: useThinking,
         )
         .listen(
           (token) {
