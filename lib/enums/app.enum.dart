@@ -157,6 +157,7 @@ class AppStrings {
   // Message actions
   static const editMessage = 'Düzenle';
   static const copyMessage = 'Kopyala';
+  static const copyTitle = 'Kopyala';
   static const copiedToClipboard = 'Panoya kopyalandı';
 
   // Library dialog

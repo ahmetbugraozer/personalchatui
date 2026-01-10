@@ -248,9 +248,9 @@ class _MessageBubbleState extends State<MessageBubble> {
           onPressed: () {
             Clipboard.setData(ClipboardData(text: widget.message.content));
             Get.snackbar(
-              '',
+              AppStrings.copyTitle,
               AppStrings.copiedToClipboard,
-              snackPosition: SnackPosition.BOTTOM,
+              snackPosition: SnackPosition.TOP,
               duration: const Duration(seconds: 2),
             );
           },
@@ -279,9 +279,9 @@ class _MessageBubbleState extends State<MessageBubble> {
           onPressed: () {
             Clipboard.setData(ClipboardData(text: widget.message.content));
             Get.snackbar(
-              '',
+              AppStrings.copyTitle,
               AppStrings.copiedToClipboard,
-              snackPosition: SnackPosition.BOTTOM,
+              snackPosition: SnackPosition.TOP,
               duration: const Duration(seconds: 2),
             );
           },
