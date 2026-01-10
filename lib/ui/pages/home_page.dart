@@ -20,11 +20,16 @@ class HomePage extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 700;
-        // Auto-collapse on very narrow screens
-        sidebar.autoCollapseIfNarrow(constraints.maxWidth);
+
+        // Auto-collapse on very narrow screens (post-frame to avoid build loops)
+        if (isNarrow) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            sidebar.autoCollapseIfNarrow(constraints.maxWidth);
+          });
+        }
 
         // Keep this in sync with PreferredSize height below
-        final double appBarHeight = (7.2.h).clamp(56.0, 72.0);
+        final double appBarHeight = (7.2.ch(context)).clamp(56.0, 72.0);
         final double topSafe = MediaQuery.of(context).padding.top;
         final double contentTopPadding = topSafe + appBarHeight;
 
@@ -37,7 +42,7 @@ class HomePage extends StatelessWidget {
               top: true,
               bottom: false,
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 2.0.w),
+                padding: EdgeInsets.symmetric(horizontal: 2.0.cw(context)),
                 alignment: Alignment.centerRight,
                 child: Row(
                   children: [
@@ -59,8 +64,8 @@ class HomePage extends StatelessWidget {
                         style: ElevatedButton.styleFrom(
                           elevation: 0,
                           padding: EdgeInsets.symmetric(
-                            horizontal: 2.0.w.clamp(16, 24),
-                            vertical: 1.2.h.clamp(10, 14),
+                            horizontal: 2.0.cw(context).clamp(16, 24),
+                            vertical: 1.2.ch(context).clamp(10, 14),
                           ),
                           backgroundColor: Theme.of(
                             context,

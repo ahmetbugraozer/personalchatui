@@ -96,11 +96,13 @@ class _SearchChatsDialogState extends State<SearchChatsDialog> {
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 640;
         final maxWidth =
-            isNarrow ? constraints.maxWidth : 80.w.clamp(520, 720) as double;
+            isNarrow
+                ? constraints.maxWidth
+                : (80.w.clamp(520, 720)).toDouble();
         final maxHeight =
             isNarrow
-                ? 75.h.clamp(360, 680) as double
-                : 60.h.clamp(420, 600) as double;
+                ? (75.h.clamp(360, 680)).toDouble()
+                : (60.h.clamp(420, 600)).toDouble();
 
         return DialogScaffold(
           title: AppStrings.chats,

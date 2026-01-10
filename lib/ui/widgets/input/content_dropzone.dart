@@ -34,7 +34,9 @@ class ContentDropzone extends StatelessWidget {
               return SingleChildScrollView(
                 physics: const NeverScrollableScrollPhysics(),
                 child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 1.0.h.clamp(6, 12)),
+                  padding: EdgeInsets.symmetric(
+                    vertical: 1.0.ch(context).clamp(6, 12),
+                  ),
                   child: Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -45,7 +47,7 @@ class ContentDropzone extends StatelessWidget {
                           style: theme.textTheme.titleMedium,
                           textAlign: TextAlign.center,
                         ),
-                        SizedBox(height: 1.0.h.clamp(6, 14)),
+                        SizedBox(height: 1.0.ch(context).clamp(6, 14)),
                         Text(
                           AppStrings.supportedExts,
                           style: theme.textTheme.bodyMedium?.copyWith(
@@ -54,7 +56,7 @@ class ContentDropzone extends StatelessWidget {
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        SizedBox(height: 0.6.h.clamp(4, 10)),
+                        SizedBox(height: 0.6.ch(context).clamp(4, 10)),
                         Text(
                           AppStrings.maxSizeText,
                           style: theme.textTheme.bodySmall?.copyWith(
@@ -64,7 +66,7 @@ class ContentDropzone extends StatelessWidget {
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        SizedBox(height: 1.0.h.clamp(8, 16)),
+                        SizedBox(height: 1.0.ch(context).clamp(8, 16)),
                         if (uploading)
                           SizedBox(
                             width: 220,

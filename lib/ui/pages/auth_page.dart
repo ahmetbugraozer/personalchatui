@@ -147,8 +147,8 @@ class _AuthPageState extends State<AuthPage>
           Center(
             child: SingleChildScrollView(
               padding: EdgeInsets.symmetric(
-                horizontal: 4.w.clamp(16, 32),
-                vertical: 4.h.clamp(24, 48),
+                horizontal: 4.cw(context).clamp(16, 32),
+                vertical: 4.ch(context).clamp(24, 48),
               ),
               child: AnimatedSize(
                 duration: const Duration(milliseconds: 300),
@@ -158,7 +158,7 @@ class _AuthPageState extends State<AuthPage>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _buildHeader(theme),
-                    SizedBox(height: 3.h.clamp(20, 36)),
+                    SizedBox(height: 3.ch(context).clamp(20, 36)),
                     ValueListenableBuilder<bool>(
                       valueListenable: _isLoading,
                       builder: (context, isLoading, _) {
@@ -210,13 +210,13 @@ class _AuthPageState extends State<AuthPage>
           AppStrings.appTitle,
           style: theme.textTheme.headlineLarge?.copyWith(
             fontWeight: FontWeight.w700,
-            fontSize: 4.h.clamp(28, 42),
+            fontSize: 4.ch(context).clamp(28, 42),
           ),
           textAlign: TextAlign.center,
         ),
-        SizedBox(height: 1.h.clamp(8, 14)),
+        SizedBox(height: 1.ch(context).clamp(8, 14)),
         SizedBox(
-          height: 2.8.h.clamp(20, 32),
+          height: 2.8.ch(context).clamp(20, 32),
           child:
               showWelcome
                   ? Text(
@@ -268,7 +268,7 @@ class _AuthPageState extends State<AuthPage>
               validator: Validators.email,
               autovalidateMode: AutovalidateMode.onUserInteraction,
             ),
-            SizedBox(height: 1.6.h.clamp(12, 20)),
+            SizedBox(height: 1.6.ch(context).clamp(12, 20)),
             TextFormField(
               controller: _passwordController,
               decoration: InputDecoration(
@@ -281,15 +281,17 @@ class _AuthPageState extends State<AuthPage>
               autovalidateMode: AutovalidateMode.onUserInteraction,
               onFieldSubmitted: (_) => _handleLogin(),
             ),
-            SizedBox(height: 2.4.h.clamp(16, 28)),
+            SizedBox(height: 2.4.ch(context).clamp(16, 28)),
             FilledButton(
               onPressed: _handleLogin,
               child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 1.2.h.clamp(10, 16)),
+                padding: EdgeInsets.symmetric(
+                  vertical: 1.2.ch(context).clamp(10, 16),
+                ),
                 child: Text(AppStrings.authLogin),
               ),
             ),
-            SizedBox(height: 1.6.h.clamp(12, 20)),
+            SizedBox(height: 1.6.ch(context).clamp(12, 20)),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -342,7 +344,7 @@ class _AuthPageState extends State<AuthPage>
               validator: Validators.email,
               autovalidateMode: AutovalidateMode.onUserInteraction,
             ),
-            SizedBox(height: 1.6.h.clamp(12, 20)),
+            SizedBox(height: 1.6.ch(context).clamp(12, 20)),
             TextFormField(
               controller: _passwordController,
               textInputAction: TextInputAction.next,
@@ -355,7 +357,7 @@ class _AuthPageState extends State<AuthPage>
               validator: Validators.registerPassword,
               autovalidateMode: AutovalidateMode.onUserInteraction,
             ),
-            SizedBox(height: 1.6.h.clamp(12, 20)),
+            SizedBox(height: 1.6.ch(context).clamp(12, 20)),
             TextFormField(
               controller: _confirmPasswordController,
               decoration: InputDecoration(
@@ -372,15 +374,17 @@ class _AuthPageState extends State<AuthPage>
               autovalidateMode: AutovalidateMode.onUserInteraction,
               onFieldSubmitted: (_) => _handleRegister(),
             ),
-            SizedBox(height: 2.4.h.clamp(16, 28)),
+            SizedBox(height: 2.4.ch(context).clamp(16, 28)),
             FilledButton(
               onPressed: _handleRegister,
               child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 1.2.h.clamp(10, 16)),
+                padding: EdgeInsets.symmetric(
+                  vertical: 1.2.ch(context).clamp(10, 16),
+                ),
                 child: Text(AppStrings.authRegister),
               ),
             ),
-            SizedBox(height: 1.6.h.clamp(12, 20)),
+            SizedBox(height: 1.6.ch(context).clamp(12, 20)),
             const Divider(height: 32),
             _buildSocialSection(theme),
             const Divider(height: 32),
@@ -421,7 +425,7 @@ class _AuthPageState extends State<AuthPage>
               ),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: 2.0.h.clamp(14, 24)),
+            SizedBox(height: 2.0.ch(context).clamp(14, 24)),
             TextFormField(
               controller: _emailController,
               decoration: InputDecoration(
@@ -434,15 +438,17 @@ class _AuthPageState extends State<AuthPage>
               autovalidateMode: AutovalidateMode.onUserInteraction,
               onFieldSubmitted: (_) => _handleForgotPassword(),
             ),
-            SizedBox(height: 2.4.h.clamp(16, 28)),
+            SizedBox(height: 2.4.ch(context).clamp(16, 28)),
             FilledButton(
               onPressed: _handleForgotPassword,
               child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 1.2.h.clamp(10, 16)),
+                padding: EdgeInsets.symmetric(
+                  vertical: 1.2.ch(context).clamp(10, 16),
+                ),
                 child: Text(AppStrings.authSendResetLink),
               ),
             ),
-            SizedBox(height: 1.6.h.clamp(12, 20)),
+            SizedBox(height: 1.6.ch(context).clamp(12, 20)),
             TextButton(
               onPressed: () => _switchView(AuthView.login),
               child: Text(AppStrings.authBackToLogin),
@@ -462,7 +468,7 @@ class _AuthPageState extends State<AuthPage>
             color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.6),
           ),
         ),
-        SizedBox(height: 1.2.h.clamp(10, 16)),
+        SizedBox(height: 1.2.ch(context).clamp(10, 16)),
         const SocialLoginButtons(),
       ],
     );
