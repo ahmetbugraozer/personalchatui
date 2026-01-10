@@ -24,7 +24,7 @@ class DropOverlay extends StatefulWidget {
 class _DropOverlayState extends State<DropOverlay> {
   final _key = GlobalKey();
 
-  // Web-only listeners (kept typed as dynamic to avoid analysis warnings on non-web)
+  // Web-only listeners
   html.EventListener? _dragOverSub;
   html.EventListener? _dropSub;
   html.EventListener? _dragLeaveSub;
@@ -83,24 +83,40 @@ class _DropOverlayState extends State<DropOverlay> {
       }
     };
 
-    html.document.addEventListener('dragover', _dragOverSub);
-    html.document.addEventListener('dragleave', _dragLeaveSub);
-    html.document.addEventListener('drop', _dropSub);
+    // Use local variables to satisfy null-safety promotion
+    final dragOver = _dragOverSub;
+    final dragLeave = _dragLeaveSub;
+    final drop = _dropSub;
+
+    if (dragOver != null) {
+      html.document.addEventListener('dragover', dragOver);
+    }
+    if (dragLeave != null) {
+      html.document.addEventListener('dragleave', dragLeave);
+    }
+    if (drop != null) {
+      html.document.addEventListener('drop', drop);
+    }
   }
 
   @override
   void dispose() {
     if (kIsWeb) {
-      if (_dragOverSub != null) {
-        html.document.removeEventListener('dragover', _dragOverSub);
+      // Use local variables to satisfy null-safety promotion
+      final dragOver = _dragOverSub;
+      final dragLeave = _dragLeaveSub;
+      final drop = _dropSub;
+
+      if (dragOver != null) {
+        html.document.removeEventListener('dragover', dragOver);
         _dragOverSub = null;
       }
-      if (_dragLeaveSub != null) {
-        html.document.removeEventListener('dragleave', _dragLeaveSub);
+      if (dragLeave != null) {
+        html.document.removeEventListener('dragleave', dragLeave);
         _dragLeaveSub = null;
       }
-      if (_dropSub != null) {
-        html.document.removeEventListener('drop', _dropSub);
+      if (drop != null) {
+        html.document.removeEventListener('drop', drop);
         _dropSub = null;
       }
     }

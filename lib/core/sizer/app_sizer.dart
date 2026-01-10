@@ -35,17 +35,30 @@ class _AppSizer {
   static Size _logicalSize(BuildContext? context) {
     final mq = _mediaQuery(context);
     if (mq != null) return mq.size;
-    final view = _flutterView;
-    final ratio = view.devicePixelRatio == 0 ? 1.0 : view.devicePixelRatio;
-    final physical = view.physicalSize;
-    return Size(physical.width / ratio, physical.height / ratio);
+
+    // Fallback for Web/Desktop if context is missing
+    try {
+      final view = _flutterView;
+      final ratio = view.devicePixelRatio == 0 ? 1.0 : view.devicePixelRatio;
+      final physical = view.physicalSize;
+      // Check for empty physical size which might cause assertions on Web
+      if (physical.isEmpty) return const Size(360, 690);
+      return Size(physical.width / ratio, physical.height / ratio);
+    } catch (_) {
+      // Safe fallback to prevent crashes during init or weird engine states
+      return const Size(360, 690);
+    }
   }
 
   static double _devicePixelRatio(BuildContext? context) {
     final mq = _mediaQuery(context);
     if (mq != null) return mq.devicePixelRatio;
-    final view = _flutterView;
-    return view.devicePixelRatio == 0 ? 1.0 : view.devicePixelRatio;
+    try {
+      final view = _flutterView;
+      return view.devicePixelRatio == 0 ? 1.0 : view.devicePixelRatio;
+    } catch (_) {
+      return 1.0;
+    }
   }
 
   static MediaQueryData? _mediaQuery(BuildContext? context) {

@@ -27,7 +27,7 @@ class _InputBarState extends State<InputBar> {
   final Map<String, Timer> _uploadTimers = {};
   late final ChatController _chat;
 
-  // GetX Workers - use late final for proper initialization
+  // GetX Workers
   late final Worker _clearWorker;
   late final Worker _clearAttachmentsWorker;
 
@@ -39,7 +39,6 @@ class _InputBarState extends State<InputBar> {
     _chat = Get.find<ChatController>();
     _controller.addListener(_onTextChanged);
 
-    // Initialize workers
     _clearWorker = ever<int>(_chat.composerClearSignal, _onComposerClear);
     _clearAttachmentsWorker = ever<int>(
       _chat.attachmentClearSignal,
@@ -238,271 +237,244 @@ class _InputBarState extends State<InputBar> {
     setState(() {});
   }
 
+  void _setDropping(bool value) {
+    if (_dropping != value) {
+      // Schedule state change after the current frame to avoid layout issues
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _dropping = value);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isNarrow = screenWidth < 700;
+    final isVeryNarrow = screenWidth < 400;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Sizer-based dimensions
-        final containerPadding = 1.6.ch(context).clamp(12.0, 18.0);
-        final textFieldVPad = 0.6.ch(context).clamp(8.0, 14.0);
-        final blockSpacing = 1.0.ch(context).clamp(8.0, 14.0);
-        final modelLabelGap = 0.8.cw(context).clamp(6.0, 10.0);
-        final dividerGap = 1.4.cw(context).clamp(10.0, 18.0);
-        final thinkGap = 1.0.cw(context).clamp(8.0, 14.0);
-        final thinkPadVert = 0.8.ch(context).clamp(8.0, 12.0);
-        final thinkPadNarrow = 1.0.cw(context).clamp(8.0, 14.0);
-        final thinkPadWide = 1.6.cw(context).clamp(12.0, 18.0);
+    // Calculate available width inside the container (screen width - padding)
+    final double availableWidth =
+        screenWidth - (1.6.ch(context).clamp(12.0, 18.0) * 2);
 
-        final double chipSpacing = 0.6.cw(context).clamp(4.0, 6.0);
-        final double chipRunSpacing = 0.6.ch(context).clamp(4.0, 6.0);
-        final double chipBottomPad = 0.8.ch(context).clamp(6.0, 8.0);
+    final double fixedItemsWidth = 270.0; // Increased slightly for safety
+    final double safeWidth = (availableWidth - fixedItemsWidth).clamp(
+      0.0,
+      320.0,
+    );
+    final double desired =
+        isNarrow ? (availableWidth * 0.50).clamp(100.0, 240.0) : 320.0;
+    final double btnMax = desired > safeWidth ? safeWidth : desired;
+    final double btnPadH =
+        isNarrow
+            ? 1.0.cw(context).clamp(8.0, 10.0)
+            : 1.6.cw(context).clamp(10.0, 12.0);
+    final double btnPadV = 0.6.ch(context).clamp(4.0, 8.0);
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min, // Add this to prevent expansion
-          children: [
-            if (_attachments.isNotEmpty)
-              Padding(
-                padding: EdgeInsets.only(bottom: chipBottomPad),
-                child: Wrap(
-                  spacing: chipSpacing,
-                  runSpacing: chipRunSpacing,
-                  children:
-                      _attachments.asMap().entries.map((e) {
-                        final a = e.value;
-                        return InputChip(
-                          avatar:
-                              a.uploading
-                                  ? SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      value:
-                                          a.progress == 0 ? null : a.progress,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                  : null,
-                          label: Text(a.name),
-                          onDeleted: () {
-                            _uploadTimers[a.id]?.cancel();
-                            _uploadTimers.remove(a.id);
-                            _attachments.removeAt(e.key);
-                            _updateAggregateUpload();
-                            setState(() {});
-                          },
-                        );
-                      }).toList(),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (_attachments.isNotEmpty)
+          Padding(
+            padding: EdgeInsets.only(bottom: 0.8.ch(context).clamp(6.0, 8.0)),
+            child: Wrap(
+              spacing: 0.6.cw(context).clamp(4.0, 6.0),
+              runSpacing: 0.6.ch(context).clamp(4.0, 6.0),
+              children:
+                  _attachments.asMap().entries.map((e) {
+                    final a = e.value;
+                    return InputChip(
+                      avatar:
+                          a.uploading
+                              ? SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  value: a.progress == 0 ? null : a.progress,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                              : null,
+                      label: Text(a.name),
+                      onDeleted: () {
+                        _uploadTimers[a.id]?.cancel();
+                        _uploadTimers.remove(a.id);
+                        _attachments.removeAt(e.key);
+                        _updateAggregateUpload();
+                        setState(() {});
+                      },
+                    );
+                  }).toList(),
+            ),
+          ),
+        Obx(() {
+          final streaming = _chat.isStreaming.value;
+          final model = AppModels.meta(_chat.currentModelId);
+          final caps = model.caps;
+          final supportsReasoning = caps.contains(ModelCapability.reasoning);
+          final supportsFiles = caps.contains(ModelCapability.fileInputs);
+          final supportsAudio = caps.contains(ModelCapability.audioInputs);
+          final fileTooltip =
+              supportsFiles
+                  ? AppTooltips.attachFile
+                  : AppTooltips.notSupportedFile;
+          final micTooltip =
+              supportsAudio ? AppTooltips.mic : AppTooltips.notSupportedMic;
+          final thinkTooltip =
+              supportsReasoning
+                  ? AppTooltips.supportedThink
+                  : AppTooltips.notSupportedThink;
+
+          final thinkingEnabled = _chat.currentThinkingEnabledRx.value;
+          final bool isThinkingActive = supportsReasoning && thinkingEnabled;
+
+          final bool anyUploading = _attachments.any((a) => a.uploading);
+          final bool canSend = !streaming && !anyUploading && _hasText;
+
+          return Container(
+            decoration: BoxDecoration(
+              color: theme.cardColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: theme.dividerColor),
+              boxShadow: [
+                BoxShadow(
+                  color: theme.colorScheme.shadow.withValues(alpha: 0.08),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
                 ),
-              ),
-            Obx(() {
-              final streaming = _chat.isStreaming.value;
-              final model = AppModels.meta(_chat.currentModelId);
-              final caps = model.caps;
-              final supportsReasoning = caps.contains(
-                ModelCapability.reasoning,
-              );
-              final supportsFiles = caps.contains(ModelCapability.fileInputs);
-              final supportsAudio = caps.contains(ModelCapability.audioInputs);
-              final fileTooltip =
-                  supportsFiles
-                      ? AppTooltips.attachFile
-                      : AppTooltips.notSupportedFile;
-              final micTooltip =
-                  supportsAudio ? AppTooltips.mic : AppTooltips.notSupportedMic;
-              final thinkTooltip =
-                  supportsReasoning
-                      ? AppTooltips.supportedThink
-                      : AppTooltips.notSupportedThink;
-
-              final thinkingEnabled = _chat.currentThinkingEnabledRx.value;
-              final bool isThinkingActive =
-                  supportsReasoning && thinkingEnabled;
-
-              final bool anyUploading = _attachments.any((a) => a.uploading);
-              final bool canSend = !streaming && !anyUploading && _hasText;
-
-              return Container(
-                decoration: BoxDecoration(
-                  color: theme.cardColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: theme.dividerColor),
-                  boxShadow: [
-                    BoxShadow(
-                      color: theme.colorScheme.shadow.withValues(alpha: 0.08),
-                      blurRadius: 18,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                padding: EdgeInsets.all(containerPadding),
-                child: Stack(
+              ],
+            ),
+            padding: EdgeInsets.all(1.6.ch(context).clamp(12.0, 18.0)),
+            child: Stack(
+              children: [
+                Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Core composer content
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Prompt TextField - make it flexible
-                        ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxHeight: MediaQuery.of(context).size.height * 0.3,
-                          ),
-                          child: Focus(
-                            onKeyEvent: (node, event) {
-                              if (event is KeyDownEvent &&
-                                  event.logicalKey ==
-                                      LogicalKeyboardKey.enter) {
-                                final isShift =
-                                    HardwareKeyboard.instance.isShiftPressed;
-                                if (!isShift) {
-                                  if (canSend) {
-                                    _onSend();
-                                    return KeyEventResult.handled;
-                                  }
-                                  return KeyEventResult.ignored;
-                                }
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.of(context).size.height * 0.3,
+                      ),
+                      child: Focus(
+                        onKeyEvent: (node, event) {
+                          if (event is KeyDownEvent &&
+                              event.logicalKey == LogicalKeyboardKey.enter) {
+                            final isShift =
+                                HardwareKeyboard.instance.isShiftPressed;
+                            if (!isShift) {
+                              if (canSend) {
+                                _onSend();
+                                return KeyEventResult.handled;
                               }
                               return KeyEventResult.ignored;
-                            },
-                            child: TextField(
-                              controller: _controller,
-                              minLines: 1,
-                              maxLines: 6,
-                              textInputAction: TextInputAction.newline,
-                              style: theme.textTheme.bodyLarge,
-                              decoration: InputDecoration(
-                                hintText: AppStrings.inputHint,
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 0,
-                                  vertical: textFieldVPad,
-                                ),
-                                filled: false,
-                                fillColor: Colors.transparent,
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                disabledBorder: InputBorder.none,
-                              ),
-                              onSubmitted: (_) {
-                                if (canSend) _onSend();
-                              }, // for soft keyboards
+                            }
+                          }
+                          return KeyEventResult.ignored;
+                        },
+                        child: TextField(
+                          controller: _controller,
+                          minLines: 1,
+                          maxLines: 6,
+                          textInputAction: TextInputAction.newline,
+                          style: theme.textTheme.bodyLarge,
+                          decoration: InputDecoration(
+                            hintText: AppStrings.inputHint,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 0,
+                              vertical: 0.6.ch(context).clamp(8.0, 14.0),
                             ),
+                            filled: false,
+                            fillColor: Colors.transparent,
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            disabledBorder: InputBorder.none,
                           ),
-                        ),
-                        SizedBox(height: blockSpacing),
-                        // Tools row - wrap in SingleChildScrollView for very narrow/short screens
-                        LayoutBuilder(
-                          builder: (ctx, cons) {
-                            final bool isNarrow = cons.maxWidth < 700;
-                            final bool isVeryNarrow = cons.maxWidth < 400;
-
-                            final double fixedItemsWidth = 200.0;
-                            final double safeWidth = (cons.maxWidth -
-                                    fixedItemsWidth)
-                                .clamp(0.0, 320.0);
-
-                            final double desired =
-                                isNarrow
-                                    ? (cons.maxWidth * 0.50).clamp(100.0, 240.0)
-                                    : 320.0;
-
-                            final double btnMax =
-                                desired > safeWidth ? safeWidth : desired;
-
-                            final double btnPadH =
-                                isNarrow
-                                    ? 1.0.cw(context).clamp(8.0, 10.0)
-                                    : 1.6.cw(context).clamp(10.0, 12.0);
-
-                            final double btnPadV = 0.6
-                                .ch(context)
-                                .clamp(4.0, 8.0);
-
-                            // For very narrow screens, use a more compact layout
-                            if (isVeryNarrow) {
-                              return SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: _buildToolsRow(
-                                  theme: theme,
-                                  streaming: streaming,
-                                  model: model,
-                                  supportsReasoning: supportsReasoning,
-                                  supportsFiles: supportsFiles,
-                                  supportsAudio: supportsAudio,
-                                  fileTooltip: fileTooltip,
-                                  micTooltip: micTooltip,
-                                  thinkTooltip: thinkTooltip,
-                                  isThinkingActive: isThinkingActive,
-                                  canSend: canSend,
-                                  isNarrow: true,
-                                  btnMax: btnMax,
-                                  btnPadH: btnPadH,
-                                  btnPadV: btnPadV,
-                                  modelLabelGap: modelLabelGap,
-                                  dividerGap: dividerGap,
-                                  thinkGap: thinkGap,
-                                  thinkPadVert: thinkPadVert,
-                                  thinkPadNarrow: thinkPadNarrow,
-                                  thinkPadWide: thinkPadWide,
-                                ),
-                              );
-                            }
-
-                            return _buildToolsRow(
-                              theme: theme,
-                              streaming: streaming,
-                              model: model,
-                              supportsReasoning: supportsReasoning,
-                              supportsFiles: supportsFiles,
-                              supportsAudio: supportsAudio,
-                              fileTooltip: fileTooltip,
-                              micTooltip: micTooltip,
-                              thinkTooltip: thinkTooltip,
-                              isThinkingActive: isThinkingActive,
-                              canSend: canSend,
-                              isNarrow: isNarrow,
-                              btnMax: btnMax,
-                              btnPadH: btnPadH,
-                              btnPadV: btnPadV,
-                              modelLabelGap: modelLabelGap,
-                              dividerGap: dividerGap,
-                              thinkGap: thinkGap,
-                              thinkPadVert: thinkPadVert,
-                              thinkPadNarrow: thinkPadNarrow,
-                              thinkPadWide: thinkPadWide,
-                            );
+                          onSubmitted: (_) {
+                            if (canSend) _onSend();
                           },
                         ),
-                      ],
+                      ),
                     ),
-                    // Drop overlay
-                    if (supportsFiles)
-                      Positioned.fill(
-                        child: DropOverlay(
-                          onHover: () => setState(() => _dropping = true),
-                          onLeave: () {
-                            if (!_attachments.any((a) => a.uploading)) {
-                              setState(() => _dropping = false);
-                            }
-                          },
-                          onDrop: _handleDropNames,
+                    SizedBox(height: 1.0.ch(context).clamp(8.0, 14.0)),
+                    // Tools row
+                    isVeryNarrow
+                        ? SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: _buildToolsRow(
+                            theme: theme,
+                            streaming: streaming,
+                            model: model,
+                            supportsReasoning: supportsReasoning,
+                            supportsFiles: supportsFiles,
+                            supportsAudio: supportsAudio,
+                            fileTooltip: fileTooltip,
+                            micTooltip: micTooltip,
+                            thinkTooltip: thinkTooltip,
+                            isThinkingActive: isThinkingActive,
+                            canSend: canSend,
+                            isNarrow: true,
+                            btnMax: btnMax,
+                            btnPadH: btnPadH,
+                            btnPadV: btnPadV,
+                            modelLabelGap: 0.8.cw(context).clamp(6.0, 10.0),
+                            dividerGap: 1.4.cw(context).clamp(10.0, 18.0),
+                            thinkGap: 1.0.cw(context).clamp(8.0, 14.0),
+                            thinkPadVert: 0.8.ch(context).clamp(8.0, 12.0),
+                            thinkPadNarrow: 1.0.cw(context).clamp(8.0, 14.0),
+                            thinkPadWide: 1.6.cw(context).clamp(12.0, 18.0),
+                            disableSpacer: true,
+                          ),
+                        )
+                        : _buildToolsRow(
+                          theme: theme,
+                          streaming: streaming,
+                          model: model,
+                          supportsReasoning: supportsReasoning,
+                          supportsFiles: supportsFiles,
+                          supportsAudio: supportsAudio,
+                          fileTooltip: fileTooltip,
+                          micTooltip: micTooltip,
+                          thinkTooltip: thinkTooltip,
+                          isThinkingActive: isThinkingActive,
+                          canSend: canSend,
+                          isNarrow: isNarrow,
+                          btnMax: btnMax,
+                          btnPadH: btnPadH,
+                          btnPadV: btnPadV,
+                          modelLabelGap: 0.8.cw(context).clamp(6.0, 10.0),
+                          dividerGap: 1.4.cw(context).clamp(10.0, 18.0),
+                          thinkGap: 1.0.cw(context).clamp(8.0, 14.0),
+                          thinkPadVert: 0.8.ch(context).clamp(8.0, 12.0),
+                          thinkPadNarrow: 1.0.cw(context).clamp(8.0, 14.0),
+                          thinkPadWide: 1.6.cw(context).clamp(12.0, 18.0),
                         ),
-                      ),
-                    if (supportsFiles && _dropping)
-                      Positioned.fill(
-                        child: ContentDropzone(
-                          uploading: _attachments.any((a) => a.uploading),
-                        ),
-                      ),
                   ],
                 ),
-              );
-            }),
-          ],
-        );
-      },
+                // Drop overlay
+                if (supportsFiles)
+                  Positioned.fill(
+                    child: DropOverlay(
+                      onHover: () => _setDropping(true),
+                      onLeave: () {
+                        if (!_attachments.any((a) => a.uploading)) {
+                          _setDropping(false);
+                        }
+                      },
+                      onDrop: _handleDropNames,
+                    ),
+                  ),
+                if (supportsFiles && _dropping)
+                  Positioned.fill(
+                    child: ContentDropzone(
+                      uploading: _attachments.any((a) => a.uploading),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        }),
+      ],
     );
   }
 
@@ -528,10 +500,10 @@ class _InputBarState extends State<InputBar> {
     required double thinkPadVert,
     required double thinkPadNarrow,
     required double thinkPadWide,
+    bool disableSpacer = false,
   }) {
     return Row(
       children: [
-        // Model selector button
         ConstrainedBox(
           constraints: BoxConstraints(maxWidth: btnMax),
           child: OutlinedButton(
@@ -578,10 +550,8 @@ class _InputBarState extends State<InputBar> {
           ),
         ),
         SizedBox(width: dividerGap),
-        // Divider
         Container(width: 1, height: 24, color: theme.dividerColor),
         SizedBox(width: dividerGap),
-        // File Attachment
         Tooltip(
           message: fileTooltip,
           child: IconButton(
@@ -589,7 +559,6 @@ class _InputBarState extends State<InputBar> {
             icon: const Icon(Icons.attach_file_rounded),
           ),
         ),
-        // Mic
         Tooltip(
           message: micTooltip,
           child: IconButton(
@@ -597,9 +566,8 @@ class _InputBarState extends State<InputBar> {
             icon: const Icon(Icons.mic_none_rounded),
           ),
         ),
-        const Spacer(),
+        if (disableSpacer) SizedBox(width: dividerGap) else const Spacer(),
         if (!streaming) ...[
-          // Think button
           if (isNarrow)
             Tooltip(
               message: thinkTooltip,
@@ -655,7 +623,6 @@ class _InputBarState extends State<InputBar> {
               ),
             ),
           SizedBox(width: thinkGap),
-          // Send button
           Container(
             decoration: BoxDecoration(
               color: theme.colorScheme.primary.withValues(alpha: 0.10),
@@ -672,7 +639,6 @@ class _InputBarState extends State<InputBar> {
             ),
           ),
         ] else ...[
-          // Stop button
           Container(
             decoration: BoxDecoration(
               color: theme.colorScheme.primary.withValues(alpha: 0.10),

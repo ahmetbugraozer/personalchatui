@@ -24,14 +24,16 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Get.find<ThemeController>();
     return Obx(
-      () => GetMaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: AppStrings.appTitle,
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
-        themeMode: theme.themeMode.value,
-        initialRoute: AppRoutes.auth,
-        getPages: AppRoutes.pages,
+      () => SafeArea(
+        child: GetMaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: AppStrings.appTitle,
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: theme.themeMode.value,
+          initialRoute: AppRoutes.auth,
+          getPages: AppRoutes.pages,
+        ),
       ),
     );
   }

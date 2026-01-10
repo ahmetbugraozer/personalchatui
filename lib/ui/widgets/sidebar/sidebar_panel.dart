@@ -66,13 +66,10 @@ class SidebarPanel extends StatelessWidget {
                   : MediaQuery.of(context).size.width;
 
           // Sizer-based dimensions
-          final double minExpanded = 220.0;
-          final double maxExpanded = 320.0;
-
           final double expandedWidth =
               inDrawer
                   ? viewportWidth
-                  : (viewportWidth * 0.22).clamp(minExpanded, maxExpanded);
+                  : (viewportWidth * 0.22).clamp(220.0, 320.0);
 
           final double collapsedWidth = 72.0;
           final double targetWidth =
@@ -80,26 +77,9 @@ class SidebarPanel extends StatelessWidget {
           final bool showLabel = inDrawer || (openTarget && targetWidth > 140);
 
           // Using app_sizer for paddings and spacings
-          final double sectionHorizontalPad =
-              openTarget ? 1.2.cw(context).clamp(10.0, 18.0) : 0.0;
-          final double dividerSpacing = 1.6.ch(context).clamp(16.0, 26.0);
-          final double itemSpacing = 0.6.ch(context).clamp(4.0, 8.0);
-
           final EdgeInsets sectionPadding = EdgeInsets.symmetric(
-            horizontal: sectionHorizontalPad,
+            horizontal: openTarget ? 1.2.cw(context).clamp(10.0, 18.0) : 0.0,
           );
-
-          // Header height using sizer
-          final double headerHeight = 6.5.ch(context).clamp(56.0, 64.0);
-          final double headerPaddingH = 1.2.cw(context).clamp(8.0, 12.0);
-
-          // Bottom user row sizing
-          final double bottomRowHeight = 6.5.ch(context).clamp(48.0, 60.0);
-          final double bottomRowPadH = 1.0.cw(context).clamp(8.0, 12.0);
-          final double bottomRowPadV = 0.6.ch(context).clamp(6.0, 10.0);
-          final double avatarSize = 2.8.ch(context).clamp(24.0, 32.0);
-          final double userNameGap = 0.6.cw(context).clamp(6.0, 10.0);
-          final double bottomItemGap = 0.8.cw(context).clamp(6.0, 10.0);
 
           Widget sectionHeader(String text) => Padding(
             padding: sectionPadding,
@@ -111,7 +91,10 @@ class SidebarPanel extends StatelessWidget {
 
           // Calculate minimum height needed for fixed elements
           // Header + dividers + entries + bottom row = roughly 400px minimum
-          final double minFixedHeight = headerHeight + bottomRowHeight + 280;
+          final double minFixedHeight =
+              6.5.ch(context).clamp(56.0, 64.0) +
+              6.5.ch(context).clamp(48.0, 60.0) +
+              280;
           final double availableHeight = constraints.maxHeight;
           final bool isVeryShort = availableHeight < minFixedHeight;
 
@@ -146,17 +129,31 @@ class SidebarPanel extends StatelessWidget {
                                   ctrl: ctrl,
                                   openTarget: openTarget,
                                   showLabel: showLabel,
-                                  headerHeight: headerHeight,
-                                  headerPaddingH: headerPaddingH,
-                                  dividerSpacing: dividerSpacing,
-                                  itemSpacing: itemSpacing,
+                                  headerHeight: 6.5
+                                      .ch(context)
+                                      .clamp(56.0, 64.0),
+                                  headerPaddingH: 1.0
+                                      .cw(context)
+                                      .clamp(8.0, 12.0),
+                                  dividerSpacing: 1.6
+                                      .ch(context)
+                                      .clamp(16.0, 26.0),
+                                  itemSpacing: 0.6.ch(context).clamp(4.0, 8.0),
                                   sectionHeader: sectionHeader,
-                                  bottomRowHeight: bottomRowHeight,
-                                  bottomRowPadH: bottomRowPadH,
-                                  bottomRowPadV: bottomRowPadV,
-                                  avatarSize: avatarSize,
-                                  userNameGap: userNameGap,
-                                  bottomItemGap: bottomItemGap,
+                                  bottomRowHeight: 6.5
+                                      .ch(context)
+                                      .clamp(48.0, 60.0),
+                                  bottomRowPadH: 1.0
+                                      .cw(context)
+                                      .clamp(8.0, 12.0),
+                                  bottomRowPadV: 0.6
+                                      .ch(context)
+                                      .clamp(6.0, 10.0),
+                                  avatarSize: 2.8.ch(context).clamp(24.0, 32.0),
+                                  userNameGap: 0.6.cw(context).clamp(6.0, 10.0),
+                                  bottomItemGap: 0.8
+                                      .cw(context)
+                                      .clamp(6.0, 10.0),
                                   exampleContext: exampleContext,
                                   isScrollable: true,
                                 ),
@@ -169,17 +166,19 @@ class SidebarPanel extends StatelessWidget {
                               ctrl: ctrl,
                               openTarget: openTarget,
                               showLabel: showLabel,
-                              headerHeight: headerHeight,
-                              headerPaddingH: headerPaddingH,
-                              dividerSpacing: dividerSpacing,
-                              itemSpacing: itemSpacing,
+                              headerHeight: 6.5.ch(context).clamp(56.0, 64.0),
+                              headerPaddingH: 1.0.cw(context).clamp(8.0, 12.0),
+                              dividerSpacing: 1.6.ch(context).clamp(16.0, 26.0),
+                              itemSpacing: 0.6.ch(context).clamp(4.0, 8.0),
                               sectionHeader: sectionHeader,
-                              bottomRowHeight: bottomRowHeight,
-                              bottomRowPadH: bottomRowPadH,
-                              bottomRowPadV: bottomRowPadV,
-                              avatarSize: avatarSize,
-                              userNameGap: userNameGap,
-                              bottomItemGap: bottomItemGap,
+                              bottomRowHeight: 6.5
+                                  .ch(context)
+                                  .clamp(48.0, 60.0),
+                              bottomRowPadH: 1.0.cw(context).clamp(8.0, 12.0),
+                              bottomRowPadV: 0.6.ch(context).clamp(6.0, 10.0),
+                              avatarSize: 2.8.ch(context).clamp(24.0, 32.0),
+                              userNameGap: 0.6.cw(context).clamp(6.0, 10.0),
+                              bottomItemGap: 0.8.cw(context).clamp(6.0, 10.0),
                               exampleContext: exampleContext,
                               isScrollable: false,
                             ),
