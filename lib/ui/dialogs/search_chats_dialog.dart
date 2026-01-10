@@ -96,9 +96,7 @@ class _SearchChatsDialogState extends State<SearchChatsDialog> {
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 640;
         final maxWidth =
-            isNarrow
-                ? constraints.maxWidth
-                : (80.w.clamp(520, 720)).toDouble();
+            isNarrow ? constraints.maxWidth : (80.w.clamp(520, 720)).toDouble();
         final maxHeight =
             isNarrow
                 ? (75.h.clamp(360, 680)).toDouble()
@@ -167,35 +165,79 @@ class _SearchChatsDialogState extends State<SearchChatsDialog> {
                               Widget? tile;
                               switch (r.type) {
                                 case RowType.newChat:
-                                  tile = ListTile(
-                                    dense: true,
-                                    leading: const Icon(
-                                      Icons.edit_note_rounded,
+                                  tile = Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                      vertical: 2,
                                     ),
-                                    title: Text(AppStrings.newChat),
-                                    onTap: () {
-                                      chat.newChat();
-                                      Navigator.of(context).pop('new');
-                                    },
+                                    child: Material(
+                                      color: theme.colorScheme.primary
+                                          .withValues(alpha: 0.08),
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: ListTile(
+                                        dense: false,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 4,
+                                            ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        leading: Container(
+                                          width: 36,
+                                          height: 36,
+                                          decoration: BoxDecoration(
+                                            color: theme.colorScheme.primary
+                                                .withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            Icons.edit_note_rounded,
+                                            color: theme.colorScheme.primary,
+                                            size: 20,
+                                          ),
+                                        ),
+                                        title: Text(
+                                          AppStrings.newChat,
+                                          style: theme.textTheme.bodyLarge
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w500,
+                                                color:
+                                                    theme.colorScheme.primary,
+                                              ),
+                                        ),
+                                        onTap: () {
+                                          chat.newChat();
+                                          Navigator.of(context).pop('new');
+                                        },
+                                      ),
+                                    ),
                                   );
                                   break;
                                 case RowType.header:
                                   tile = Padding(
                                     padding: EdgeInsets.fromLTRB(
                                       2.w.clamp(12, 20),
-                                      1.2.h.clamp(8, 12),
+                                      1.6.h.clamp(12, 18),
                                       0,
                                       0.6.h.clamp(4, 8),
                                     ),
                                     child: Text(
                                       r.text!,
-                                      style: theme.textTheme.labelMedium
+                                      style: theme.textTheme.labelLarge
                                           ?.copyWith(
                                             color: theme
                                                 .textTheme
                                                 .labelMedium
                                                 ?.color
-                                                ?.withValues(alpha: 0.7),
+                                                ?.withValues(alpha: 0.6),
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: 0.3,
                                           ),
                                     ),
                                   );
@@ -209,56 +251,100 @@ class _SearchChatsDialogState extends State<SearchChatsDialog> {
                                       chat
                                           .modelHistoryRxFor(item.index)
                                           .toList();
-                                  tile = ListTile(
-                                    dense: true,
-                                    leading: Icon(
-                                      isSelected
-                                          ? Icons.chat_bubble_rounded
-                                          : Icons.chat_bubble_outline_rounded,
+                                  final hasMultipleModels = history.length > 1;
+
+                                  tile = Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                      vertical: 2,
                                     ),
-                                    title: Text(
-                                      item.title.isEmpty
-                                          ? AppStrings.newChat
-                                          : item.title,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
+                                    child: Material(
+                                      color:
+                                          isSelected
+                                              ? theme.colorScheme.primary
+                                                  .withValues(alpha: 0.1)
+                                              : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: InkWell(
+                                        borderRadius: BorderRadius.circular(12),
+                                        onTap: () {
+                                          chat.selectSession(item.index);
+                                          Navigator.of(context).pop('selected');
+                                        },
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 10,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              // Leading icon
+                                              Icon(
+                                                isSelected
+                                                    ? Icons.chat_bubble_rounded
+                                                    : Icons
+                                                        .chat_bubble_outline_rounded,
+                                                size: 20,
+                                                color:
+                                                    isSelected
+                                                        ? theme
+                                                            .colorScheme
+                                                            .primary
+                                                        : theme.iconTheme.color
+                                                            ?.withValues(
+                                                              alpha: 0.7,
+                                                            ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              // Title
+                                              Expanded(
+                                                child: Text(
+                                                  item.title.isEmpty
+                                                      ? AppStrings.newChat
+                                                      : item.title,
+                                                  maxLines: 2,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: theme
+                                                      .textTheme
+                                                      .bodyMedium
+                                                      ?.copyWith(
+                                                        fontWeight:
+                                                            isSelected
+                                                                ? FontWeight
+                                                                    .w500
+                                                                : FontWeight
+                                                                    .normal,
+                                                      ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              // Model grid with larger size
+                                              ModelGrid(
+                                                logoUrls:
+                                                    history
+                                                        .map(
+                                                          (id) =>
+                                                              AppModels.meta(
+                                                                id,
+                                                              ).logoUrl,
+                                                        )
+                                                        .toList(),
+                                                size:
+                                                    hasMultipleModels ? 34 : 28,
+                                                radius: 5,
+                                                gap: 2.5,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                    trailing: ModelGrid(
-                                      // replaced _DialogModelGrid
-                                      logoUrls:
-                                          history
-                                              .map(
-                                                (id) =>
-                                                    AppModels.meta(id).logoUrl,
-                                              )
-                                              .toList(),
-                                      size: 22, // was 18, slightly larger
-                                    ),
-                                    onTap: () {
-                                      chat.selectSession(item.index);
-                                      Navigator.of(context).pop('selected');
-                                    },
                                   );
                                   break;
                               }
 
-                              // Add divider below regular items (not after headers or last)
-                              final isLast = i == rows.length - 1;
-                              final showDivider =
-                                  r.type == RowType.item &&
-                                  !isLast &&
-                                  rows[i + 1].type != RowType.header;
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  tile,
-                                  if (showDivider)
-                                    Divider(
-                                      height: 1,
-                                      color: theme.dividerColor,
-                                    ),
-                                ],
-                              );
+                              return tile;
                             },
                           ),
                 ),
