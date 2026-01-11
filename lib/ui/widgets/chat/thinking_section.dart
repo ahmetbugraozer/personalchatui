@@ -19,14 +19,19 @@ class ThinkingSection extends StatefulWidget {
 }
 
 class _ThinkingSectionState extends State<ThinkingSection>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final RxBool _isExpanded = false.obs;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
+  // New controller for vertical expansion
+  late AnimationController _expandController;
+  late Animation<double> _expandAnimation;
+
   @override
   void initState() {
     super.initState();
+    // Pulse animation setup
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -35,12 +40,32 @@ class _ThinkingSectionState extends State<ThinkingSection>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
     _pulseController.repeat(reverse: true);
+
+    // Expand animation setup
+    _expandController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _expandAnimation = CurvedAnimation(
+      parent: _expandController,
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
+    _expandController.dispose();
     super.dispose();
+  }
+
+  void _toggleExpand() {
+    _isExpanded.value = !_isExpanded.value;
+    if (_isExpanded.value) {
+      _expandController.forward();
+    } else {
+      _expandController.reverse();
+    }
   }
 
   @override
@@ -64,7 +89,7 @@ class _ThinkingSectionState extends State<ThinkingSection>
           Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: () => _isExpanded.value = !_isExpanded.value,
+              onTap: _toggleExpand,
               borderRadius: BorderRadius.circular(8),
               child: Padding(
                 padding: buttonPadding,
@@ -114,15 +139,12 @@ class _ThinkingSectionState extends State<ThinkingSection>
             ),
           ),
 
-          // Expanded thinking content
-          AnimatedCrossFade(
-            firstChild: const SizedBox.shrink(),
-            secondChild: _buildThinkingContent(context, theme),
-            crossFadeState:
-                isExpanded
-                    ? CrossFadeState.showSecond
-                    : CrossFadeState.showFirst,
-            duration: const Duration(milliseconds: 250),
+          // Expanded thinking content with vertical SizeTransition
+          // This avoids the "dragging text" artifact of CrossFade
+          SizeTransition(
+            sizeFactor: _expandAnimation,
+            axisAlignment: -1.0, // Expand from top
+            child: _buildThinkingContent(context, theme),
           ),
         ],
       );
@@ -133,7 +155,7 @@ class _ThinkingSectionState extends State<ThinkingSection>
     final contentPadding = 1.2.cw(context).clamp(10.0, 16.0);
     final borderColor = theme.dividerColor;
     final textStyle = theme.textTheme.bodyMedium?.copyWith(
-      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
+      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
       height: 1.5,
       fontStyle: FontStyle.italic,
     );
