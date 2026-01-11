@@ -24,7 +24,7 @@ class ChatService {
       final thinkingTokens = _tokenize(thinkingContent);
 
       for (final t in thinkingTokens) {
-        await Future.delayed(Duration(milliseconds: 25 + (t.length % 2) * 20));
+        await Future.delayed(const Duration(milliseconds: 20));
         yield StreamToken(t, isThinking: true);
       }
 
@@ -42,7 +42,7 @@ class ChatService {
     final tokens = _tokenize(base);
 
     for (final t in tokens) {
-      await Future.delayed(Duration(milliseconds: 30 + (t.length % 3) * 40));
+      await Future.delayed(const Duration(milliseconds: 20));
       yield StreamToken(t, isThinking: false);
     }
   }
@@ -61,7 +61,7 @@ class ChatService {
     final tokens = _tokenize(base);
 
     for (final t in tokens) {
-      await Future.delayed(Duration(milliseconds: 30 + (t.length % 3) * 40));
+      await Future.delayed(const Duration(milliseconds: 20));
       yield t;
     }
   }
@@ -74,11 +74,37 @@ class ChatService {
         'Farklı açıları değerlendiriyorum...';
   }
 
+  /// Tokenize text into small chunks for smooth streaming
+  /// Long words are split into smaller pieces
   Iterable<String> _tokenize(String text) sync* {
-    // Simple whitespace tokenization but keep spacing
+    const maxChunkSize = 8; // Maximum characters per token
+
     final parts = text.split(' ');
     for (var i = 0; i < parts.length; i++) {
-      yield (i == 0 ? '' : ' ') + parts[i];
+      final word = parts[i];
+      final prefix = i == 0 ? '' : ' ';
+
+      if (word.length <= maxChunkSize) {
+        // Short word - yield as single token
+        yield prefix + word;
+      } else {
+        // Long word - split into chunks
+        var start = 0;
+        var isFirst = true;
+        while (start < word.length) {
+          final end = (start + maxChunkSize).clamp(0, word.length);
+          final chunk = word.substring(start, end);
+
+          if (isFirst) {
+            yield prefix + chunk;
+            isFirst = false;
+          } else {
+            yield chunk;
+          }
+
+          start = end;
+        }
+      }
     }
   }
 }

@@ -303,6 +303,7 @@ class _ChatAreaState extends State<ChatArea> {
                               horizontal: listHPad,
                               vertical: 16,
                             ),
+                            addAutomaticKeepAlives: true,
                             itemCount: items.length,
                             itemBuilder: (context, index) {
                               final msg = items[index];

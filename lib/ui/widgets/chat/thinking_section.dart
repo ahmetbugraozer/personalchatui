@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/sizer/app_sizer.dart';
 import '../../../enums/app.enum.dart';
+import 'smooth_streaming_text.dart';
 
 class ThinkingSection extends StatefulWidget {
   final RxString thinkingText;
@@ -53,9 +54,7 @@ class _ThinkingSectionState extends State<ThinkingSection>
     return Obx(() {
       final isThinking = widget.isThinking.value;
       final isExpanded = _isExpanded.value;
-      final thinkingContent = widget.thinkingText.value;
 
-      // Determine button label
       final label = isThinking ? AppStrings.thinking : AppStrings.thinkingPhase;
 
       return Column(
@@ -72,7 +71,6 @@ class _ThinkingSectionState extends State<ThinkingSection>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Animated label (pulses when thinking)
                     if (isThinking)
                       AnimatedBuilder(
                         animation: _pulseAnimation,
@@ -101,7 +99,6 @@ class _ThinkingSectionState extends State<ThinkingSection>
 
                     SizedBox(width: 0.4.cw(context).clamp(4.0, 8.0)),
 
-                    // Chevron icon (rotates when expanded)
                     AnimatedRotation(
                       turns: isExpanded ? 0.25 : 0,
                       duration: const Duration(milliseconds: 200),
@@ -120,7 +117,7 @@ class _ThinkingSectionState extends State<ThinkingSection>
           // Expanded thinking content
           AnimatedCrossFade(
             firstChild: const SizedBox.shrink(),
-            secondChild: _buildThinkingContent(context, theme, thinkingContent),
+            secondChild: _buildThinkingContent(context, theme),
             crossFadeState:
                 isExpanded
                     ? CrossFadeState.showSecond
@@ -132,13 +129,14 @@ class _ThinkingSectionState extends State<ThinkingSection>
     });
   }
 
-  Widget _buildThinkingContent(
-    BuildContext context,
-    ThemeData theme,
-    String content,
-  ) {
+  Widget _buildThinkingContent(BuildContext context, ThemeData theme) {
     final contentPadding = 1.2.cw(context).clamp(10.0, 16.0);
     final borderColor = theme.dividerColor;
+    final textStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
+      height: 1.5,
+      fontStyle: FontStyle.italic,
+    );
 
     return Container(
       margin: EdgeInsets.only(
@@ -149,39 +147,13 @@ class _ThinkingSectionState extends State<ThinkingSection>
       decoration: BoxDecoration(
         border: Border(left: BorderSide(color: borderColor, width: 2)),
       ),
-      child:
-          content.isEmpty
-              ? Obx(() {
-                // Show pulsing dots when no content yet
-                if (widget.isThinking.value) {
-                  return AnimatedBuilder(
-                    animation: _pulseAnimation,
-                    builder: (context, child) {
-                      return Opacity(
-                        opacity: _pulseAnimation.value,
-                        child: Text(
-                          '...',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.textTheme.bodyMedium?.color
-                                ?.withValues(alpha: 0.6),
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                }
-                return const SizedBox.shrink();
-              })
-              : SelectableText(
-                content,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.textTheme.bodyMedium?.color?.withValues(
-                    alpha: 0.8,
-                  ),
-                  height: 1.5,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
+      child: SmoothStreamingText(
+        streamingText: widget.thinkingText,
+        isStreamingRx: widget.isThinking,
+        style: textStyle,
+        charDelay: const Duration(milliseconds: 6),
+        snapToEndOnStop: true,
+      ),
     );
   }
 }

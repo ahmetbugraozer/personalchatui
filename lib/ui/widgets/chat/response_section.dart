@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import '../../../core/sizer/app_sizer.dart';
 import '../../../enums/app.enum.dart';
 import '../../../models/chat_message.dart';
+import '../../../controllers/chat_controller.dart';
+import 'smooth_streaming_text.dart';
 import 'thinking_section.dart';
 
 class ResponseSection extends StatelessWidget {
@@ -31,7 +33,6 @@ class ResponseSection extends StatelessWidget {
     final logoSize = 3.2.ch(context).clamp(28.0, 40.0);
     final contentPadding = 1.2.cw(context).clamp(10.0, 16.0);
 
-    // Check if we should show thinking section
     final showThinking = thinkingText != null && isThinking != null;
 
     return Column(
@@ -40,20 +41,10 @@ class ResponseSection extends StatelessWidget {
         // Model logo
         Padding(
           padding: EdgeInsets.only(bottom: 3.0.ch(context).clamp(12.0, 21.0)),
-          child: SvgPicture.asset(
-            meta.logoUrl,
-            width: logoSize,
-            height: logoSize,
-            placeholderBuilder:
-                (_) => SizedBox(
-                  width: logoSize,
-                  height: logoSize,
-                  child: const CircularProgressIndicator(strokeWidth: 2),
-                ),
-          ),
+          child: _buildModelLogo(context, theme, meta.logoUrl, logoSize),
         ),
 
-        // Thinking section (only if thinking was enabled)
+        // Thinking section
         if (showThinking)
           Padding(
             padding: EdgeInsets.only(bottom: 0.8.ch(context).clamp(6.0, 12.0)),
@@ -75,27 +66,60 @@ class ResponseSection extends StatelessWidget {
     );
   }
 
+  Widget _buildModelLogo(
+    BuildContext context,
+    ThemeData theme,
+    String logoUrl,
+    double size,
+  ) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: SvgPicture.asset(
+        logoUrl,
+        width: size,
+        height: size,
+        placeholderBuilder: (_) => _buildLogoPlaceholder(theme, size),
+      ),
+    );
+  }
+
+  Widget _buildLogoPlaceholder(ThemeData theme, double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        Icons.smart_toy_outlined,
+        size: size * 0.6,
+        color: theme.colorScheme.primary,
+      ),
+    );
+  }
+
   Widget _buildContent(BuildContext context, ThemeData theme) {
+    final textStyle = theme.textTheme.bodyLarge?.copyWith(height: 1.6);
+    final chat = Get.find<ChatController>();
+
     if (streamingText != null) {
-      return Obx(() {
-        final text = message.content + streamingText!.value;
-        if (text.isEmpty) {
-          return const SizedBox.shrink();
-        }
-        return SelectableText(
-          text,
-          style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
-        );
-      });
+      return SmoothStreamingText(
+        key: ValueKey('response_anim_${message.id}'),
+        streamingText: streamingText!,
+        baseContent: message.content,
+        style: textStyle,
+        charDelay: const Duration(milliseconds: 6),
+        isStreamingRx: chat.isStreaming,
+        snapToEndOnStop: false, // Natural finish for response
+      );
     }
 
     if (message.content.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    return SelectableText(
-      message.content,
-      style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
-    );
+    return SelectableText(message.content, style: textStyle);
   }
 }

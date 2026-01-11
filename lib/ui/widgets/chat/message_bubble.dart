@@ -57,8 +57,6 @@ class _MessageBubbleState extends State<MessageBubble> {
       vertical: 1.0.ch(context).clamp(8.0, 14.0),
     );
     final bubbleRadius = 1.8.cw(context).clamp(12.0, 18.0);
-
-    // Fixed height for actions to prevent layout shift
     final actionsHeight = 2.4.ch(context).clamp(32.0, 40.0);
 
     return Padding(
@@ -147,7 +145,8 @@ class _MessageBubbleState extends State<MessageBubble> {
     ChatController chat,
   ) {
     final isLast = widget.messageIndex == chat.messages.length - 1;
-    final isStreaming = chat.isStreaming.value && isLast;
+    // We check initial streaming state here, but wrap the content in Obx below
+    // to react to phase changes (Thinking -> Response).
 
     // Determine which model generated this response
     final modelId =
@@ -155,18 +154,6 @@ class _MessageBubbleState extends State<MessageBubble> {
         (chat.streamingModelId.value.isNotEmpty
             ? chat.streamingModelId.value
             : chat.currentModelId);
-
-    // Check if thinking mode was used for this message
-    final hasThinkingContent =
-        widget.message.thinkingContent != null &&
-        widget.message.thinkingContent!.isNotEmpty;
-    final isCurrentlyThinking = isStreaming && chat.isCurrentlyThinking.value;
-    final hasStreamingThinking =
-        isStreaming && chat.thinkingText.value.isNotEmpty;
-
-    // Only show thinking section if there's actual thinking content
-    final showThinking =
-        hasThinkingContent || isCurrentlyThinking || hasStreamingThinking;
 
     // Fixed height for actions to prevent layout shift
     final actionsHeight = 2.4.ch(context).clamp(32.0, 40.0);
@@ -179,28 +166,50 @@ class _MessageBubbleState extends State<MessageBubble> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Response content
-            ResponseSection(
-              message: widget.message,
-              messageIndex: widget.messageIndex,
-              streamingText: isStreaming ? widget.streamingText : null,
-              thinkingText:
-                  showThinking
-                      ? (isStreaming
-                          ? chat.thinkingText
-                          : RxString(widget.message.thinkingContent ?? ''))
-                      : null,
-              isThinking:
-                  showThinking
-                      ? (isStreaming ? chat.isCurrentlyThinking : false.obs)
-                      : null,
-              modelId: modelId,
-            ),
+            // Response content wrapped in Obx to react to phase changes
+            Obx(() {
+              final isStreamingLocal = chat.isStreaming.value && isLast;
 
-            // Actions row - fixed height container to prevent layout shift
+              // Check if thinking mode was used for this message
+              final hasThinkingContent =
+                  widget.message.thinkingContent != null &&
+                  widget.message.thinkingContent!.isNotEmpty;
+              final isCurrentlyThinking =
+                  isStreamingLocal && chat.isCurrentlyThinking.value;
+              final hasStreamingThinking =
+                  isStreamingLocal && chat.thinkingText.value.isNotEmpty;
+
+              // Only show thinking section if there's actual thinking content
+              final showThinking =
+                  hasThinkingContent ||
+                  isCurrentlyThinking ||
+                  hasStreamingThinking;
+
+              return ResponseSection(
+                message: widget.message,
+                messageIndex: widget.messageIndex,
+                streamingText: isStreamingLocal ? widget.streamingText : null,
+                thinkingText:
+                    showThinking
+                        ? (isStreamingLocal
+                            ? chat.thinkingText
+                            : RxString(widget.message.thinkingContent ?? ''))
+                        : null,
+                isThinking:
+                    showThinking
+                        ? (isStreamingLocal
+                            ? chat.isCurrentlyThinking
+                            : false.obs)
+                        : null,
+                modelId: modelId,
+              );
+            }),
+
+            // Actions row
             SizedBox(
               height: actionsHeight,
               child: Obx(() {
+                final isStreaming = chat.isStreaming.value && isLast;
                 final showActions = _isHovered.value && !isStreaming;
                 return AnimatedOpacity(
                   opacity: showActions ? 1.0 : 0.0,
