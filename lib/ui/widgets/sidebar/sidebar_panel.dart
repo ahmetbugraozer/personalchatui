@@ -426,7 +426,7 @@ class SidebarPanel extends StatelessWidget {
                   vertical: 0.8.ch(context).clamp(6.0, 8.0),
                 ),
                 child: Text(
-                  AppStrings.noChatsYet,
+                  AppStrings.noChats,
                   style: theme.textTheme.labelLarge,
                 ),
               ),

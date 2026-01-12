@@ -106,10 +106,14 @@ class AppStrings {
 
   static const appTitle = 'Personal Chat UI';
   static const chats = 'Sohbetler';
-  static const noChatsYet = 'Henüz sohbet yok';
+  static const noChats = 'Henüz sohbet yok';
+  static const noChatsDescription = 'Sohbet geçmişiniz burada görünecek';
   static const searchChatsHint = 'Sohbetleri ara…';
   static const modelTitle = 'Model seçimi';
   static const searchModelsHint = 'Model ara…';
+  static const modelNotFound = 'Model bulunamadı';
+  static const modelNotFoundDescription =
+      'Şu anda erişilebilir bir yapay zeka modeli yok.';
   static const noResults = 'Sonuç bulunamadı';
   static const close = 'Kapat';
   static const renameChat = 'Sohbet adını değiştir';
@@ -163,6 +167,8 @@ class AppStrings {
   // Library dialog
   static const images = 'Görseller';
   static const noImages = 'Henüz görsel yok';
+  static const noImagesDescription =
+      'Sohbetlerinizde paylaştığınız görseller burada görünecek';
 
   // User profile section
   static const userName = 'Kullanıcı';

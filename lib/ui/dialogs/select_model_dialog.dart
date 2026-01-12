@@ -204,10 +204,32 @@ class _SelectModelDialogState extends State<SelectModelDialog> {
                 chat.currentModelId,
               );
               if (sections.isEmpty) {
+                // Fallback scenario: If no filters are applied but still empty -> Backend/System issue
                 return Center(
-                  child: Text(
-                    AppStrings.noResults,
-                    style: theme.textTheme.bodyMedium,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.auto_awesome,
+                        size: 220,
+                        color: theme.iconTheme.color?.withValues(alpha: 0.15),
+                      ),
+                      SizedBox(height: 2.h.clamp(16, 24)),
+                      Text(
+                        AppStrings.modelNotFound,
+                        style: theme.textTheme.headlineSmall,
+                      ),
+                      SizedBox(height: 1.h.clamp(8, 16)),
+                      Text(
+                        AppStrings.modelNotFoundDescription,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.textTheme.bodyMedium?.color?.withValues(
+                            alpha: 0.6,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 );
               }

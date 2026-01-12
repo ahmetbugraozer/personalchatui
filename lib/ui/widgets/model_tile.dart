@@ -16,13 +16,17 @@ class ModelTile extends StatelessWidget {
     return ListTile(
       dense: false,
       leading: ClipRRect(
-        borderRadius: BorderRadius.circular(999),
-        child: SvgPicture.asset(
-          meta.logoUrl,
-          width: 28,
-          height: 28,
-          fit: BoxFit.contain,
-          placeholderBuilder: (_) => const Icon(Icons.auto_awesome, size: 24),
+        borderRadius: BorderRadius.circular(1),
+        child: Container(
+          width: 45,
+          height: 45,
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: theme.cardColor,
+            border: Border.all(color: theme.dividerColor),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: SvgPicture.asset(meta.logoUrl, fit: BoxFit.contain),
         ),
       ),
       title: Text(

@@ -43,9 +43,30 @@ class _LibraryDialogState extends State<LibraryDialog> {
               maxWidth: maxWidth,
               maxHeight: maxHeight,
               content: Center(
-                child: Text(
-                  AppStrings.noImages,
-                  style: theme.textTheme.titleLarge,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.perm_media_outlined,
+                      size: 220,
+                      color: theme.iconTheme.color?.withValues(alpha: 0.15),
+                    ),
+                    SizedBox(height: 2.h.clamp(16, 24)),
+                    Text(
+                      AppStrings.noImages,
+                      style: theme.textTheme.headlineMedium,
+                    ),
+                    SizedBox(height: 1.h.clamp(16, 24)),
+                    Text(
+                      AppStrings.noImagesDescription,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: theme.textTheme.bodyLarge?.color?.withValues(
+                          alpha: 0.6,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             );
