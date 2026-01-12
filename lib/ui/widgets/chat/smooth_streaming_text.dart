@@ -61,7 +61,6 @@ class _SmoothStreamingTextState extends State<SmoothStreamingText>
 
     _initWorkers();
 
-    // Initial state check
     final isStreaming = widget.isStreamingRx?.value ?? false;
     final initialContent = widget.baseContent + widget.streamingText.value;
 
@@ -79,12 +78,52 @@ class _SmoothStreamingTextState extends State<SmoothStreamingText>
   @override
   void didUpdateWidget(SmoothStreamingText oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // If the Rx references changed, (re)bind the workers
-    if (widget.streamingText != oldWidget.streamingText ||
-        widget.isStreamingRx != oldWidget.isStreamingRx) {
+
+    // Check for source change or streaming state change
+    bool sourceChanged = widget.streamingText != oldWidget.streamingText;
+    bool baseChanged = widget.baseContent != oldWidget.baseContent;
+    bool streamStateChanged = widget.isStreamingRx != oldWidget.isStreamingRx;
+
+    if (sourceChanged || streamStateChanged) {
       _initWorkers();
-      _ensureAnimating();
     }
+
+    // Handle content updates or resets
+    if (sourceChanged || baseChanged) {
+      final currentTarget = widget.baseContent + widget.streamingText.value;
+      final isStreaming = widget.isStreamingRx?.value ?? false;
+
+      if (isStreaming) {
+        // While streaming:
+        // If the new target is shorter than what we show, it implies a reset/clear operation.
+        if (currentTarget.length < _visibleText.length) {
+          _resetState(currentTarget);
+        }
+      } else {
+        // Not streaming (History Navigation / Static View):
+        // If content differs from what is visible, update immediately.
+        // This handles switching branches where thinking content might change (Short <-> Long).
+        if (currentTarget != _visibleText) {
+          setState(() {
+            _visibleText = currentTarget;
+            if (widget.snapToEndOnStop) {
+              _hasCompleted = true;
+              _completedContent = currentTarget;
+            }
+          });
+        }
+      }
+    }
+
+    _ensureAnimating();
+  }
+
+  void _resetState(String newContent) {
+    setState(() {
+      _visibleText = newContent;
+      _hasCompleted = false;
+      _completedContent = '';
+    });
   }
 
   void _initWorkers() {
@@ -115,6 +154,12 @@ class _SmoothStreamingTextState extends State<SmoothStreamingText>
           // Reactivated (e.g. regeneration)
           if (widget.snapToEndOnStop) {
             _hasCompleted = false;
+            // Also check reset on reactivation (if content was cleared in controller)
+            final currentTarget =
+                widget.baseContent + widget.streamingText.value;
+            if (currentTarget.length < _visibleText.length) {
+              _resetState(currentTarget);
+            }
           }
           _ensureAnimating();
         }
@@ -164,9 +209,8 @@ class _SmoothStreamingTextState extends State<SmoothStreamingText>
       final isStreaming = widget.isStreamingRx?.value ?? false;
 
       if (_visibleText.length < target.length) {
-        // Calculate dynamic chunk size for catch-up
         final remaining = target.length - _visibleText.length;
-        // If we are way behind, speed up significantly
+        // Speed up if far behind
         final charsToAdd =
             remaining > 20 ? 4 : (remaining > 10 ? 3 : (remaining > 3 ? 2 : 1));
         final newLength = (_visibleText.length + charsToAdd).clamp(
@@ -178,12 +222,19 @@ class _SmoothStreamingTextState extends State<SmoothStreamingText>
           _visibleText = target.substring(0, newLength);
         });
       } else if (!isStreaming) {
-        // If not streaming and caught up, we are done
         timer.cancel();
         _animationTimer = null;
         if (widget.snapToEndOnStop) {
           _hasCompleted = true;
           _completedContent = target;
+        }
+      } else {
+        // Look for shrinking target (reset scenario while streaming)
+        // This handles cases where controller clears text but we missed the event
+        if (target.length < _visibleText.length) {
+          setState(() {
+            _visibleText = target;
+          });
         }
       }
     });
